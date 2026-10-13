@@ -37,8 +37,6 @@ public class VatglassesPainter extends MapPainter<Void> {
     private boolean label = true;
     @Parameter(value = "Label Opacity", min = 0, max = 1)
     private double labelOpacity = 0.9;
-    @Parameter(value = "Hide When Zoomed Out Further Than", min = 1, max = 16384)
-    private double minScale = 3;
 
     private final Supplier<ActiveSubSector[]> visibleSubSectors;
 
@@ -49,10 +47,6 @@ public class VatglassesPainter extends MapPainter<Void> {
 
     @Override
     public void paint(final GraphicsContext c, final Void unused) {
-        if (mapVariables.getScale() < minScale) {
-            return;
-        }
-
         final ActiveSubSector[] subSectors = visibleSubSectors.get();
         final int n = subSectors.length;
 
