@@ -4,6 +4,7 @@ import com.google.inject.Inject;
 import de.saxsys.mvvmfx.ViewModel;
 import javafx.application.HostServices;
 import javafx.collections.ObservableList;
+import net.marvk.fs.vatsim.map.ProjectLinks;
 import net.marvk.fs.vatsim.map.data.Dependency;
 import net.marvk.fs.vatsim.map.data.DependencyRepository;
 import net.marvk.fs.vatsim.map.data.VersionProvider;
@@ -35,10 +36,10 @@ public class AboutViewModel implements ViewModel {
     }
 
     public void openIssuePage() {
-        hostServices.showDocument("https://github.com/marvk/vatprism/issues/new/choose");
+        hostServices.showDocument(ProjectLinks.ISSUES + "/new/choose");
     }
 
     public void openLicensePage() {
-        hostServices.showDocument("https://github.com/marvk/vatprism/blob/master/LICENSE");
+        hostServices.showDocument(ProjectLinks.REPOSITORY + "/blob/master/LICENSE");
     }
 }

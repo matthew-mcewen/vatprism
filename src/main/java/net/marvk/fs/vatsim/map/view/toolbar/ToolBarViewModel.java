@@ -6,6 +6,7 @@ import de.saxsys.mvvmfx.ViewModel;
 import javafx.application.HostServices;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.*;
+import net.marvk.fs.vatsim.map.ProjectLinks;
 import net.marvk.fs.vatsim.map.data.Preferences;
 import net.marvk.fs.vatsim.map.data.RepositoryException;
 import net.marvk.fs.vatsim.map.view.Notifications;
@@ -101,14 +102,14 @@ public class ToolBarViewModel implements ViewModel {
     }
 
     public void visitGithub() {
-        hostServices.showDocument("https://github.com/marvk/vatprism");
+        hostServices.showDocument(ProjectLinks.REPOSITORY);
     }
 
     public void visitUsageGuide() {
-        hostServices.showDocument("https://vatprism.org/usage-guide");
+        hostServices.showDocument(ProjectLinks.REPOSITORY + "/blob/master/docs/usage-guide.md");
     }
 
     public void visitChangelog() {
-        hostServices.showDocument("https://github.com/marvk/vatprism/blob/master/CHANGELOG.md");
+        hostServices.showDocument(ProjectLinks.REPOSITORY + "/blob/master/CHANGELOG.md");
     }
 }

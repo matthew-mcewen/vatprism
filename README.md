@@ -2,6 +2,11 @@
 
 # VATprism [![Discord](https://img.shields.io/discord/801211199592857672.svg?label=&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2)](https://discord.gg/XPpFHhT8sk) [![Build Status](https://github.com/marvk/vatprism/workflows/Build/badge.svg)](https://github.com/marvk/vatprism/actions?query=workflow%3ABuild)  ![GitHub downloads](https://img.shields.io/github/downloads/marvk/vatprism/total) [![Help Wanted](https://img.shields.io/github/issues/marvk/vatprism/help%20wanted?color=B5903D&label=help%20wanted)](https://github.com/marvk/vatprism/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22) [![Feedback Wanted](https://img.shields.io/github/issues/marvk/vatprism/feedback%20wanted?color=008672&label=feedback%20wanted)](https://github.com/marvk/vatprism/issues?q=is%3Aissue+is%3Aopen+label%3A%22feedback+wanted%22)
 
+> **MattPrism** is a fork of [VATprism](https://github.com/marvk/vatprism) by Marvin Kuhnke which adds TRACON
+> boundaries, VATGlasses sectors, events and bookings. It installs next to the original VATprism.
+> [Download](https://github.com/matthew-mcewen/vatprism/releases/latest) ·
+> [Changelog](CHANGELOG.md) · [Building and releasing](BUILDING.md)
+
 Welcome to the VATprism repository! VATprism is a data explorer for [VATSIM](https://www.vatsim.net/), the
 **V**irtual **A**ir **T**raffic **Sim**ulation Network. VATprism allows users to explore available ATC services,
 connected pilots, Airports, Flight and Upper Information Regions and more!
@@ -50,7 +55,7 @@ please check existing issues for duplicates.
 #### Windows
 
 Simply download the latest installer (`.msi`) from
-the [releases page](https://github.com/marvk/vatprism/releases/latest)
+the [releases page](https://github.com/matthew-mcewen/vatprism/releases/latest)
 and run it. The installer will guide you through the installation.
 
 Note: Windows Defender SmartScreen might show [a warning](docs/assets/images/warning.png) about the installer not being
@@ -59,7 +64,7 @@ being [unsigned.](https://docs.microsoft.com/en-us/windows/security/threat-prote
 
 #### macOS
 
-Simply download the latest image (`.dmg`) from the [releases page](https://github.com/marvk/vatprism/releases/latest)
+Simply download the latest image (`.dmg`) from the [releases page](https://github.com/matthew-mcewen/vatprism/releases/latest)
 and run it.
 
 Note: macOS might warn you that VATprism can not be trusted because it has been downloaded from the internet. To open

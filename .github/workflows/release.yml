@@ -1,0 +1,142 @@
+name: Release
+
+# Publishes a GitHub release with installers when a version tag such as v0.4.0 is pushed. A tag with a suffix, such as
+# v0.5.0-beta1, is published as a prerelease. Can also be started manually for an existing tag.
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing tag to release, e.g. v0.4.0'
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+      version: ${{ steps.version.outputs.version }}
+      numeric: ${{ steps.version.outputs.numeric }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
+    steps:
+      - name: Determine version
+        id: version
+        env:
+          TAG: ${{ github.event.inputs.tag || github.ref_name }}
+        run: |
+          if ! [[ "$TAG" =~ ^v([0-9]+\.[0-9]+\.[0-9]+)(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "Tag '$TAG' is not a version like v1.2.3 or v1.2.3-beta1"
+            exit 1
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+          # Installers only accept plain numeric versions
+          echo "numeric=${BASH_REMATCH[1]}" >> "$GITHUB_OUTPUT"
+          if [[ -n "${BASH_REMATCH[2]}" ]]; then
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  build-windows:
+    needs: version
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.version.outputs.tag }}
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: maven
+      - name: Install WiX Toolset
+        shell: pwsh
+        run: |
+          Invoke-WebRequest https://github.com/wixtoolset/wix3/releases/download/wix3141rtm/wix314-binaries.zip -OutFile wix.zip
+          Expand-Archive wix.zip -DestinationPath "$env:RUNNER_TEMP\wix"
+          "$env:RUNNER_TEMP\wix" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      - name: Build, test and package
+        run: mvn --batch-mode clean verify "-DversionName=${{ needs.version.outputs.version }}" "-DappVersion=${{ needs.version.outputs.numeric }}"
+      - name: Rename installer
+        shell: bash
+        run: mv target-installer/*.msi "target-installer/MattPrism-${{ needs.version.outputs.version }}-windows.msi"
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: target-installer/*.msi
+          if-no-files-found: error
+
+  # Best effort: this build is not tested and does not hold back the Windows release if it fails
+  build-macos:
+    needs: version
+    runs-on: macos-latest
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.version.outputs.tag }}
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: maven
+      - name: Build, test and package
+        env:
+          NUMERIC: ${{ needs.version.outputs.numeric }}
+        run: |
+          # macOS does not allow application versions which start with 0, so 0.x.y is packaged as 1.x.y. The version
+          # shown inside the application is not affected.
+          mvn --batch-mode clean verify "-DversionName=${{ needs.version.outputs.version }}" "-DappVersion=${NUMERIC/#0./1.}"
+      - name: Rename image
+        run: mv target-installer/*.dmg "target-installer/MattPrism-${{ needs.version.outputs.version }}-macos.dmg"
+      - name: Upload image
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          path: target-installer/*.dmg
+          if-no-files-found: error
+
+  release:
+    needs: [ version, build-windows, build-macos ]
+    if: ${{ always() && needs.build-windows.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.version.outputs.tag }}
+      - name: Download Windows installer
+        uses: actions/download-artifact@v4
+        with:
+          name: windows
+          path: installers
+      - name: Download macOS image
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: macos
+          path: installers
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.version.outputs.tag }}
+          name: ${{ needs.version.outputs.tag }}
+          prerelease: ${{ needs.version.outputs.prerelease == 'true' }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: |
+            installers/*
+            LICENSE

@@ -112,7 +112,7 @@ public class App extends MvvmfxGuiceApplication {
         });
 
         secondaryStage.getIcons().addAll(loadIcon("icon-16.png"), loadIcon("icon-24.png"), loadIcon("icon-32.png"));
-        secondaryStage.setTitle("VATprism");
+        secondaryStage.setTitle("MattPrism");
         log.info("Creating scene");
         secondaryStage.setScene(new Scene(viewTuple.getView(), 1366, 768));
         log.info("Showing stage");

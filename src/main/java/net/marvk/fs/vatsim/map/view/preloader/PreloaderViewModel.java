@@ -11,6 +11,7 @@ import javafx.beans.property.*;
 import javafx.concurrent.Service;
 import javafx.concurrent.Task;
 import lombok.extern.log4j.Log4j2;
+import net.marvk.fs.vatsim.map.ProjectLinks;
 import net.marvk.fs.vatsim.api.CachedVatsimApi;
 import net.marvk.fs.vatsim.api.VatsimApi;
 import net.marvk.fs.vatsim.map.api.UpdateChannel;
@@ -167,7 +168,7 @@ public class PreloaderViewModel implements ViewModel {
 
     public void goToIssuePage() {
         final String escapedError = error.get().replaceAll(" ", "+");
-        hostServices.showDocument("https://github.com/marvk/vatprism/issues/new?assignees=&labels=bug&template=preloader_issue.md&title=Error+during+startup%3A+" + escapedError);
+        hostServices.showDocument(ProjectLinks.ISSUES + "/new?assignees=&labels=bug&template=preloader_issue.md&title=Error+during+startup%3A+" + escapedError);
     }
 
     public String getVersionAndName() {

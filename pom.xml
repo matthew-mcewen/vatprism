@@ -46,11 +46,19 @@
 
     <properties>
         <!--Defaults, should be passed as command line argument for real builds-->
-        <versionName>0.3.6</versionName>
-        <buildNumber>1</buildNumber>
+        <versionName>0.4.0</versionName>
+        <!--Version of the installer, has to consist of up to three numbers-->
+        <appVersion>0.4.0</appVersion>
 
         <mainClass>net.marvk.fs.vatsim.map.Application</mainClass>
         <developerName>Marvin Kuhnke</developerName>
+
+        <!--Identity of the installed application, distinct from the upstream VATprism so both can be installed-->
+        <appName>MattPrism</appName>
+        <appVendor>Matthew McEwen</appVendor>
+        <appIdentifier>io.github.matthew-mcewen.mattprism</appIdentifier>
+        <!--Must never change, installers with the same UUID upgrade each other-->
+        <winUpgradeUuid>ec42f744-a305-40e5-945d-07b07577d73a</winUpgradeUuid>
 
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -58,11 +66,12 @@
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
 
-        <java.version>15</java.version>
+        <java.version>17</java.version>
         <lombok.version>1.18.22</lombok.version>
         <javafx.version>17.0.1</javafx.version>
         <slf4j.version>1.7.32</slf4j.version>
-        <mvvmfx.version>1.9.0-SNAPSHOT</mvvmfx.version>
+        <!--mvvmFX 1.9.0-SNAPSHOT was never released and its snapshots are gone, this is the same commit built by JitPack-->
+        <mvvmfx.version>f195849ca9</mvvmfx.version>
         <guice.version>5.0.1</guice.version>
         <ikonli.version>12.2.0</ikonli.version>
         <log4j.version>2.17.2</log4j.version>
@@ -78,13 +87,13 @@
 
         <jpackage.args.crossPlatform>
             --input "target-fat-jar/"
-            --name "${project.name}"
+            --name "${appName}"
             --main-jar "vatsim-map-${project.version}-fat.jar"
             --dest "target-installer"
             --main-class "${mainClass}"
-            --description "VATprism"
-            --vendor "${developerName}"
-            --app-version "${buildNumber}.0.0"
+            --description "${appName}"
+            --vendor "${appVendor}"
+            --app-version "${appVersion}"
         </jpackage.args.crossPlatform>
     </properties>
 
@@ -101,7 +110,8 @@
                     --icon "src/main/resources/net/marvk/fs/vatsim/map/icon-256.ico"
                     --win-dir-chooser
                     --win-menu
-                    --win-menu-group ${project.name}
+                    --win-menu-group "${appName}"
+                    --win-upgrade-uuid "${winUpgradeUuid}"
                     --type "msi"
                 </jpackage.args.platformSpecific>
             </properties>
@@ -138,7 +148,7 @@
             <properties>
                 <jpackage.args.platformSpecific>
                     --icon "src/main/resources/net/marvk/fs/vatsim/map/icon-256.icns"
-                    --mac-package-identifier ${project.name}
+                    --mac-package-identifier "${appIdentifier}"
                     --type "dmg"
                 </jpackage.args.platformSpecific>
             </properties>
@@ -224,12 +234,12 @@
         </dependency>
 
         <dependency>
-            <groupId>de.saxsys</groupId>
+            <groupId>com.github.sialcasa.mvvmFX</groupId>
             <artifactId>mvvmfx</artifactId>
             <version>${mvvmfx.version}</version>
         </dependency>
         <dependency>
-            <groupId>de.saxsys</groupId>
+            <groupId>com.github.sialcasa.mvvmFX</groupId>
             <artifactId>mvvmfx-guice</artifactId>
             <version>${mvvmfx.version}</version>
         </dependency>
@@ -429,6 +439,16 @@
                     </execution>
                 </executions>
             </plugin>
+            <!--Runs the application from source with "mvn compile exec:java". Declared after the shade plugin, because the
+                 installer which this plugin builds during the package phase needs the shaded jar-->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.0.0</version>
+                <configuration>
+                    <mainClass>${mainClass}</mainClass>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 
@@ -438,22 +458,12 @@
             <url>https://repo.maven.apache.org/maven2/</url>
         </repository>
         <repository>
-            <id>ICM</id>
-            <url>http://maven.icm.edu.pl/artifactory/repo/</url>
-        </repository>
-        <repository>
             <id>OSGeo</id>
             <url>https://repo.osgeo.org/repository/release/</url>
         </repository>
         <repository>
-            <id>Sonatype</id>
-            <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-            <releases>
-                <enabled>false</enabled>
-            </releases>
+            <id>JitPack</id>
+            <url>https://jitpack.io</url>
         </repository>
     </repositories>
 </project>

@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Changed
+
+- Distributed as MattPrism, which installs next to the original VATprism and shares its settings
+- Updates are looked for in the releases of this repository, theme choices are no longer reported
+- Requires Java 17 to build, see [BUILDING.md](BUILDING.md)
+
 ### Added
 
 - Added approach and departure boundaries from the [SimAware TRACON Project](https://github.com/vatsimnetwork/simaware-tracon-project), the approach circle is now only painted for controllers without a known boundary
