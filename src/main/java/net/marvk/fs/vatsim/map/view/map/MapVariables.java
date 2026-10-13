@@ -112,6 +112,10 @@ public class MapVariables {
         return worldView.intersects(worldRectangle);
     }
 
+    public boolean isRectIntersectingWorldView(final double x, final double y, final double w, final double h) {
+        return worldView.intersects(x, y, w, h);
+    }
+
     public boolean isRectIntersectingCanvasView(final double x, final double y, final double w, final double h) {
         return canvasView.intersects(x, y, w, h);
     }

@@ -13,6 +13,8 @@ import net.marvk.fs.vatsim.map.data.Client;
 import net.marvk.fs.vatsim.map.data.ClientRepository;
 import net.marvk.fs.vatsim.map.data.Data;
 import net.marvk.fs.vatsim.map.data.IcaoVisitor;
+import net.marvk.fs.vatsim.map.data.Pilot;
+import net.marvk.fs.vatsim.map.data.airspace.VatglassesState;
 import net.marvk.fs.vatsim.map.view.StatusScope;
 
 import java.util.stream.Collectors;
@@ -27,12 +29,16 @@ public class StatusBarViewModel implements ViewModel {
     private final ReadOnlyStringWrapper information = new ReadOnlyStringWrapper();
     private final IcaoVisitor icaoVisitor = new IcaoVisitor("");
 
+    private final VatglassesState vatglassesState;
+    private final ReadOnlyStringWrapper vatglasses = new ReadOnlyStringWrapper();
+
     @InjectScope
     private StatusScope statusScope;
 
     @Inject
-    public StatusBarViewModel(final ClientRepository clientRepository) {
+    public StatusBarViewModel(final ClientRepository clientRepository, final VatglassesState vatglassesState) {
         this.clientRepository = clientRepository;
+        this.vatglassesState = vatglassesState;
     }
 
     public void initialize() {
@@ -41,10 +47,26 @@ public class StatusBarViewModel implements ViewModel {
         Bindings.bindContent(highlightedData, statusScope.highlightedFirs());
         clientRepository.list().addListener((ListChangeListener<Client>) c -> updatePlayerStats());
         updatePlayerStats();
+        vatglasses.bind(Bindings.createStringBinding(
+                this::vatglassesString,
+                vatglassesState.enabledProperty(),
+                vatglassesState.levelProperty(),
+                vatglassesState.trackedPilotProperty()
+        ));
         information.bind(Bindings.createStringBinding(
                 () -> highlightedData.stream().map(icaoVisitor::visit).collect(Collectors.joining(", ")),
                 highlightedData
         ));
+    }
+
+    private String vatglassesString() {
+        if (!vatglassesState.enabledProperty().get()) {
+            return "";
+        }
+
+        final Pilot pilot = vatglassesState.getTrackedPilot();
+
+        return "VG FL%03d%s".formatted(vatglassesState.getLevel(), pilot == null ? "" : " " + pilot.getCallsign());
     }
 
     private void updatePlayerStats() {
@@ -61,6 +83,10 @@ public class StatusBarViewModel implements ViewModel {
 
     public ReadOnlyObjectProperty<PlayerStats> playerStatsProperty() {
         return playerStats.getReadOnlyProperty();
+    }
+
+    public ReadOnlyStringProperty vatglassesProperty() {
+        return vatglasses.getReadOnlyProperty();
     }
 
     public String getInformation() {

@@ -6,6 +6,7 @@ import javafx.scene.Parent;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ToggleButton;
+import javafx.scene.control.Tooltip;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.VBox;
@@ -28,6 +29,9 @@ public class DataDetailView implements FxmlView<DataDetailViewModel> {
 
     @FXML
     private ToggleButton follow;
+
+    @FXML
+    private ToggleButton vatglasses;
 
     @FXML
     private Button historyForward;
@@ -55,6 +59,12 @@ public class DataDetailView implements FxmlView<DataDetailViewModel> {
 
         historyBack.disableProperty().bind(viewModel.historyBackAvailableProperty().not());
         historyForward.disableProperty().bind(viewModel.historyForwardAvailableProperty().not());
+
+        vatglasses.visibleProperty().bind(viewModel.vatglassesAvailableProperty());
+        vatglasses.managedProperty().bind(viewModel.vatglassesAvailableProperty());
+        vatglasses.setTooltip(new Tooltip("Show Vatglasses sectors at the altitude of this flight"));
+        vatglasses.setSelected(viewModel.isVatglassesTracked());
+        viewModel.vatglassesTrackedProperty().addListener((observable, oldValue, newValue) -> vatglasses.setSelected(newValue));
 
         container.setOnKeyPressed(this::handleKeyEvent);
 
@@ -103,6 +113,11 @@ public class DataDetailView implements FxmlView<DataDetailViewModel> {
     @FXML
     private void historyForward() {
         viewModel.historyForward();
+    }
+
+    @FXML
+    private void toggleVatglasses() {
+        viewModel.setVatglassesTracked(vatglasses.isSelected());
     }
 
     @FXML

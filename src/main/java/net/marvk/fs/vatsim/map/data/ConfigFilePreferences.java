@@ -76,6 +76,12 @@ public class ConfigFilePreferences implements Preferences, Writable {
         booleanProperty("context_menu.show_all_uirs", false);
         booleanProperty("context_menu.show_all_airports", false);
         booleanProperty("context_menu.show_all_pilots", false);
+
+        booleanProperty("tracon.enabled", true);
+        booleanProperty("vatglasses.enabled", true);
+        stringProperty("vatglasses.cid", "");
+        booleanProperty("vatglasses.automatic", true);
+        integerProperty("vatglasses.manual_level", 200);
     }
 
     private void migrateOldProperties() {

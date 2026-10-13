@@ -120,9 +120,11 @@ public class AirportPainter extends MapPainter<Airport> {
         final String icao = airport.getIcao();
 
         final double textScale = c.getFont().getSize() / 12.0;
-        final boolean paintApproachCircle = mapVariables.getScale() > (40 / approachRadius) * textScale;
-        final boolean paintApproachLabel = paintApproachCircle;
         final boolean paintApproach = types.remove(ControllerType.DEP) | types.remove(ControllerType.APP);
+        // The circle is only a placeholder for approach controllers without a known boundary
+        final boolean paintApproachCircle = mapVariables.getScale() > (40 / approachRadius) * textScale
+                && !(paintApproach && isApproachBoundaryMatched(airport));
+        final boolean paintApproachLabel = paintApproachCircle;
 
         if (paintControllers) {
             c.setTextAlign(TextAlignment.CENTER);
@@ -202,6 +204,18 @@ public class AirportPainter extends MapPainter<Airport> {
                 );
             }
         }
+    }
+
+    private static boolean isApproachBoundaryMatched(final Airport airport) {
+        for (final Controller controller : airport.getControllers()) {
+            final ControllerType type = controller.getControllerType();
+
+            if ((type == ControllerType.APP || type == ControllerType.DEP) && !controller.isAirspaceBoundaryMatched()) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private double xOffset(final Point2D point) {

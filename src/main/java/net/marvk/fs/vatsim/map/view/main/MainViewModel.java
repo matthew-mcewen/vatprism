@@ -17,6 +17,7 @@ import javafx.concurrent.Task;
 import javafx.scene.paint.Color;
 import lombok.extern.log4j.Log4j2;
 import net.marvk.fs.vatsim.map.data.*;
+import net.marvk.fs.vatsim.map.data.airspace.AirspaceService;
 import net.marvk.fs.vatsim.map.view.Notifications;
 import net.marvk.fs.vatsim.map.view.SettingsScope;
 import net.marvk.fs.vatsim.map.view.StatusScope;
@@ -39,6 +40,8 @@ public class MainViewModel implements ViewModel {
 
     private final Preferences preferences;
 
+    private final AirspaceService airspaceService;
+
     private final ReloadService clientReloadService;
 
     private final ReadOnlyBooleanWrapper onboarding = new ReadOnlyBooleanWrapper();
@@ -49,11 +52,13 @@ public class MainViewModel implements ViewModel {
     @Inject
     public MainViewModel(
             final ClientRepository clientRepository,
+            final AirspaceService airspaceService,
             final Preferences preferences,
             final VersionProvider versionProvider,
             @Named("vatsimApiRefreshRate") final Duration refreshRate
     ) {
         this.preferences = preferences;
+        this.airspaceService = airspaceService;
 
         Notifications.RELOAD_CLIENTS.subscribe(this::reloadClients);
 
@@ -71,6 +76,7 @@ public class MainViewModel implements ViewModel {
     }
 
     private void clientReloadCompleted() {
+        airspaceService.refresh();
         Notifications.REPAINT.publish();
         Notifications.CLIENTS_RELOADED.publish();
     }
@@ -80,6 +86,8 @@ public class MainViewModel implements ViewModel {
     }
 
     public void initialize() {
+        airspaceService.initialize(Notifications.REPAINT::publish);
+
         toolbarScope.autoReloadProperty().addListener((observable, oldValue, newValue) -> {
             if (newValue) {
                 reloadClients();

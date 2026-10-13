@@ -17,6 +17,8 @@ public class StatusBarView implements FxmlView<StatusBarViewModel> {
     private Label mousePosition;
     @FXML
     private Label information;
+    @FXML
+    private Label vatglasses;
     @InjectViewModel
     private StatusBarViewModel viewModel;
 
@@ -24,12 +26,14 @@ public class StatusBarView implements FxmlView<StatusBarViewModel> {
         mousePosition.textProperty().bind(BindingsUtil.position(viewModel.mouseWorldPositionProperty()));
 
         information.textProperty().bind(viewModel.informationProperty());
+        vatglasses.textProperty().bind(viewModel.vatglassesProperty());
 
         viewModel.playerStatsProperty().addListener((observable, oldValue, newValue) -> setPlayerStats());
         setPlayerStats();
 
         bindTextToTooltip(playersOnline);
         bindTextToTooltip(information);
+        vatglasses.setTooltip(new Tooltip("Flight level of the displayed Vatglasses sectors and the flight it follows"));
         bindTextToTooltip(mousePosition);
     }
 

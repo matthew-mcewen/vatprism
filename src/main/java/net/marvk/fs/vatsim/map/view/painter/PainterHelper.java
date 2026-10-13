@@ -117,6 +117,71 @@ public class PainterHelper {
         }
     }
 
+    /**
+     * Appends the polygon to the current path of the context as closed sub paths. This allows many polygons to be
+     * painted with a single call to {@link #fillPath(GraphicsContext)} or {@link #strokePath(GraphicsContext)}.
+     *
+     * @param minCanvasSize polygons with a smaller width and height on the canvas are skipped
+     *
+     * @return whether anything was appended
+     */
+    public boolean appendPolygonsToPath(final GraphicsContext c, final Polygon polygon, final double minCanvasSize) {
+        final Rectangle2D boundary = polygon.boundary();
+
+        if (mapVariables.worldWidthToViewWidth(Math.max(boundary.getWidth(), boundary.getHeight())) < minCanvasSize) {
+            return false;
+        }
+
+        boolean result = false;
+
+        if (mapVariables.toCanvasX(boundary.getMinX()) < 0) {
+            result |= appendPolygonToPath(c, polygon, 360);
+        }
+
+        if (mapVariables.toCanvasX(boundary.getMaxX()) > mapVariables.getViewWidth()) {
+            result |= appendPolygonToPath(c, polygon, -360);
+        }
+
+        result |= appendPolygonToPath(c, polygon, 0);
+
+        return result;
+    }
+
+    private boolean appendPolygonToPath(final GraphicsContext c, final Polygon polygon, final double offsetX) {
+        final Rectangle2D boundary = polygon.boundary();
+
+        if (!mapVariables.isRectIntersectingWorldView(boundary.getMinX() + offsetX, boundary.getMinY(), boundary.getWidth(), boundary.getHeight())) {
+            return false;
+        }
+
+        final int numPoints = writeRingToBuffer(polygon.getExteriorRing(), offsetX, 0);
+
+        if (numPoints < 3) {
+            return false;
+        }
+
+        final double[] xs = mapVariables.getXBuf();
+        final double[] ys = mapVariables.getYBuf();
+
+        c.moveTo(xs[0], ys[0]);
+        for (int i = 1; i < numPoints; i++) {
+            c.lineTo(xs[i], ys[i]);
+        }
+        c.closePath();
+
+        return true;
+    }
+
+    public void fillPath(final GraphicsContext c) {
+        metric.getFillPolygon().increment();
+        c.fill();
+    }
+
+    public void strokePath(final GraphicsContext c) {
+        metric.getStrokePolygon().increment();
+        c.stroke();
+    }
+
     private void strokePolygon(final GraphicsContext c, final int numPoints) {
         metric.getStrokePolygon().increment();
         c.strokePolygon(mapVariables.getXBuf(), mapVariables.getYBuf(), numPoints);

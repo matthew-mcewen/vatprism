@@ -16,6 +16,7 @@ import javafx.scene.paint.Color;
 import javafx.util.Duration;
 import lombok.extern.log4j.Log4j2;
 import net.marvk.fs.vatsim.map.data.*;
+import net.marvk.fs.vatsim.map.data.airspace.AirspaceService;
 import net.marvk.fs.vatsim.map.view.Notifications;
 import net.marvk.fs.vatsim.map.view.SettingsScope;
 import net.marvk.fs.vatsim.map.view.StatusScope;
@@ -65,6 +66,7 @@ public class MapViewModel implements ViewModel {
     private final ObjectProperty<DistanceMeasure> distanceMeasureWorld = new SimpleObjectProperty<>();
     private final Preferences preferences;
     private final FilterRepository filterRepository;
+    private final AirspaceService airspaceService;
 
     private ObservableList<PainterExecutor<?>> painterExecutors;
 
@@ -89,6 +91,7 @@ public class MapViewModel implements ViewModel {
             final UpperInformationRegionRepository upperInformationRegionRepository,
             final Preferences preferences,
             final FilterRepository filterRepository,
+            final AirspaceService airspaceService,
             @Named("world") final PolygonRepository world,
             @Named("lakes") final PolygonRepository lakes
     ) {
@@ -100,6 +103,7 @@ public class MapViewModel implements ViewModel {
 
         this.preferences = preferences;
         this.filterRepository = filterRepository;
+        this.airspaceService = airspaceService;
 
         this.scrollSpeed.bind(preferences.doubleProperty("general.scroll_speed"));
 
@@ -215,6 +219,8 @@ public class MapViewModel implements ViewModel {
                 PainterExecutor.ofCollection("Inactive Uirs", new InactiveUirPainter(mapVariables), upperInformationRegionRepository::list, this::isNotSelected),
                 PainterExecutor.ofCollection("Active Uirs", new ActiveUirPainter(mapVariables), upperInformationRegionRepository::list, this::isNotSelected),
                 PainterExecutor.ofCollection("Active Firs", new ActiveFirbPainter(mapVariables), this::flightInformationRegionBoundaries, this::isNotSelected),
+                PainterExecutor.ofCollection("Tracon", new TraconPainter(mapVariables), airspaceService::activeTracons),
+                PainterExecutor.of("Vatglasses", new VatglassesPainter(mapVariables, airspaceService::visibleSubSectors)),
                 PainterExecutor.ofItem("Connections", new ConnectionsPainter(mapVariables), this.selectedItemProperty()::get),
                 PainterExecutor.ofCollection("Pilots", new PilotPainter(mapVariables), this::pilots, this::isNotSelected),
                 PainterExecutor.ofCollection("Filters", new FilterPainter(mapVariables, filterRepository.list()), this::pilots, this::isNotSelected),

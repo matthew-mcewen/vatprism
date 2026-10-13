@@ -17,7 +17,12 @@
             </rowConstraints>
             <children>
                 <Label fx:id="mousePosition" text="Label" GridPane.columnIndex="2"/>
-                <Label fx:id="playersOnline" text="PlayersOnline"/>
+                <HBox spacing="15.0">
+                    <children>
+                        <Label fx:id="playersOnline" text="PlayersOnline"/>
+                        <Label fx:id="vatglasses"/>
+                    </children>
+                </HBox>
                 <Label fx:id="information" text="Label" GridPane.columnIndex="1"/>
             </children>
             <HBox.margin>

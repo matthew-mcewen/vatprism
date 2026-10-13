@@ -1,8 +1,12 @@
 package net.marvk.fs.vatsim.map.view.datadetail;
 
+import com.google.inject.Inject;
 import de.saxsys.mvvmfx.ViewModel;
+import javafx.beans.binding.Bindings;
 import javafx.beans.property.*;
 import net.marvk.fs.vatsim.map.data.Data;
+import net.marvk.fs.vatsim.map.data.Pilot;
+import net.marvk.fs.vatsim.map.data.airspace.VatglassesState;
 import net.marvk.fs.vatsim.map.view.History;
 import net.marvk.fs.vatsim.map.view.Notifications;
 
@@ -23,7 +27,21 @@ public class DataDetailViewModel implements ViewModel {
 
     private final BooleanProperty follow = new SimpleBooleanProperty();
 
-    public DataDetailViewModel() {
+    private final VatglassesState vatglassesState;
+    private final ReadOnlyBooleanWrapper vatglassesAvailable = new ReadOnlyBooleanWrapper();
+    private final ReadOnlyBooleanWrapper vatglassesTracked = new ReadOnlyBooleanWrapper();
+
+    @Inject
+    public DataDetailViewModel(final VatglassesState vatglassesState) {
+        this.vatglassesState = vatglassesState;
+
+        this.vatglassesAvailable.bind(Bindings.createBooleanBinding(() -> data.get() instanceof Pilot, data));
+        this.vatglassesTracked.bind(Bindings.createBooleanBinding(
+                () -> data.get() != null && data.get() == vatglassesState.getOverridePilot(),
+                data,
+                vatglassesState.overridePilotProperty()
+        ));
+
         this.data.addListener((observable, oldValue, newValue) -> {
             if (newValue == null) {
                 history.clear();
@@ -88,6 +106,30 @@ public class DataDetailViewModel implements ViewModel {
     public void addData(final Data data) {
         history.add(data);
         this.data.set(data);
+    }
+
+    public ReadOnlyBooleanProperty vatglassesAvailableProperty() {
+        return vatglassesAvailable.getReadOnlyProperty();
+    }
+
+    public boolean isVatglassesTracked() {
+        return vatglassesTracked.get();
+    }
+
+    public ReadOnlyBooleanProperty vatglassesTrackedProperty() {
+        return vatglassesTracked.getReadOnlyProperty();
+    }
+
+    /**
+     * @param tracked whether the Vatglasses level should follow the displayed pilot, regardless of the CID of the user
+     */
+    public void setVatglassesTracked(final boolean tracked) {
+        if (tracked && data.get() instanceof Pilot) {
+            vatglassesState.enabledProperty().set(true);
+            vatglassesState.setOverridePilot((Pilot) data.get());
+        } else if (vatglassesTracked.get()) {
+            vatglassesState.setOverridePilot(null);
+        }
     }
 
     public void setFollow(final boolean follow) {

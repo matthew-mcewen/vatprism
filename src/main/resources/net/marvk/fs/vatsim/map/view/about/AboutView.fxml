@@ -40,6 +40,8 @@
                 <Region minHeight="20.0" VBox.vgrow="ALWAYS"/>
                 <Label onMouseClicked="#openIssuePage" styleClass="hl-white"
                        text="Report a bug or request a feature"/>
+                <Label styleClass="white" wrapText="true"
+                       text="Airspace data by VATGlasses (CC BY-NC-SA 4.0) and the SimAware TRACON Project (CC BY-SA 4.0)"/>
                 <Region minHeight="20.0" VBox.vgrow="ALWAYS"/>
                 <Label styleClass="white" text="Powered by Open Source Software"/>
             </VBox>

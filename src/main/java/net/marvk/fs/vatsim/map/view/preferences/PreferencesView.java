@@ -2,6 +2,7 @@ package net.marvk.fs.vatsim.map.view.preferences;
 
 import com.dlsc.formsfx.model.validators.DoubleRangeValidator;
 import com.dlsc.formsfx.model.validators.IntegerRangeValidator;
+import com.dlsc.formsfx.model.validators.RegexValidator;
 import com.dlsc.preferencesfx.PreferencesFx;
 import com.dlsc.preferencesfx.model.Category;
 import com.dlsc.preferencesfx.model.Group;
@@ -22,6 +23,8 @@ import lombok.SneakyThrows;
 import lombok.extern.log4j.Log4j2;
 import net.marvk.fs.vatsim.map.App;
 import net.marvk.fs.vatsim.map.data.Preferences;
+import net.marvk.fs.vatsim.map.data.airspace.AirspaceService;
+import net.marvk.fs.vatsim.map.data.airspace.VatglassesState;
 import net.marvk.fs.vatsim.map.view.Notifications;
 import net.marvk.fs.vatsim.map.view.SettingsScope;
 import net.marvk.fs.vatsim.map.view.painter.MetaPainter;
@@ -47,13 +50,15 @@ public class PreferencesView {
     private final Preferences preferences;
     private final SettingsScope settingsScope;
     private final Path configDirectory;
+    private final VatglassesState vatglassesState;
     private PreferencesFx preferencesFx;
 
     @Inject
-    public PreferencesView(final Preferences preferences, final SettingsScope settingsScope, @Named("userConfigDir") final Path configDirectory) {
+    public PreferencesView(final Preferences preferences, final SettingsScope settingsScope, @Named("userConfigDir") final Path configDirectory, final VatglassesState vatglassesState) {
         this.preferences = preferences;
         this.settingsScope = settingsScope;
         this.configDirectory = configDirectory;
+        this.vatglassesState = vatglassesState;
         this.settingsScope.getPainters()
                           .addListener((ListChangeListener<PainterExecutor<?>>) c -> getPreferencesDialog());
 
@@ -79,6 +84,7 @@ public class PreferencesView {
                 colorSchemes(),
                 ui(),
                 contextMenu(),
+                vatglasses(),
                 painters()
         ).saveSettings(false);
     }
@@ -94,6 +100,32 @@ public class PreferencesView {
                 Setting.of("Show hidden UIRs in Context Menu and Selection", allUirs),
                 Setting.of("Show hidden Airports in Context Menu and Selection", allAirports),
                 Setting.of("Show hidden Pilots in Context Menu and Selection", allPilots)
+        );
+    }
+
+    private Category vatglasses() {
+        return Category.of(
+                "Vatglasses",
+                Group.of(
+                        Setting.of("Show Vatglasses sectors", vatglassesState.enabledProperty()),
+                        Setting.of(infoLabel("Shows the airspace of online controllers at a single flight level", INFO_STYLE)),
+                        Setting.of("VATSIM CID", vatglassesState.cidProperty())
+                               .validate(RegexValidator.forPattern("\\s*\\d*\\s*", "Not a CID")),
+                        Setting.of("Automatic mode", vatglassesState.automaticProperty()),
+                        Setting.of(infoLabel("Follows the altitude of your flight while you are connected with the CID above", INFO_STYLE)),
+                        Setting.of("Manual flight level", vatglassesState.manualLevelProperty(), VatglassesState.MIN_LEVEL, VatglassesState.MAX_LEVEL),
+                        Setting.of(infoLabel("Used while no flight is followed. To follow any other flight, press VG in its details", INFO_STYLE))
+                ),
+                Group.of(
+                        "TRACON Boundaries",
+                        Setting.of("Show approach and departure boundaries", preferences.booleanProperty(AirspaceService.TRACON_ENABLED_KEY, true))
+                ),
+                Group.of(
+                        "Data",
+                        Setting.of(infoLabel("Sectors by VATGlasses, licensed under CC BY-NC-SA 4.0", INFO_STYLE)),
+                        Setting.of(infoLabel("Boundaries by the SimAware TRACON Project, licensed under CC BY-SA 4.0", INFO_STYLE)),
+                        Setting.of(infoLabel("Downloaded from GitHub when enabled and checked for updates once a day", INFO_STYLE))
+                )
         );
     }
 

@@ -5,12 +5,13 @@ import lombok.ToString;
 import lombok.extern.log4j.Log4j2;
 import net.marvk.fs.vatsim.api.data.VatsimClient;
 import net.marvk.fs.vatsim.api.data.VatsimController;
+import net.marvk.fs.vatsim.map.data.airspace.AtcStation;
 
 import java.util.List;
 
 @Log4j2
 @ToString
-public class Controller extends Client implements Data {
+public class Controller extends Client implements Data, AtcStation {
     private static final ImmutableObjectProperty<ClientType> CLIENT_TYPE = new ImmutableObjectProperty<>(ClientType.CONTROLLER);
     private final StringProperty frequency = new SimpleStringProperty();
     private final StringProperty atisMessage = new SimpleStringProperty();
@@ -33,6 +34,8 @@ public class Controller extends Client implements Data {
 
     private final ReadOnlyObjectWrapper<UpperInformationRegion> workingUpperInformationRegion =
             RelationshipReadOnlyObjectWrapper.withOtherList(this, UpperInformationRegion::getControllersWritable);
+
+    private boolean airspaceBoundaryMatched = false;
 
     @Override
     public void setFromModel(final VatsimClient client) {
@@ -77,6 +80,18 @@ public class Controller extends Client implements Data {
         if (getWorkingUpperInformationRegion() != null) {
             workingLocation.set(getWorkingUpperInformationRegion());
         }
+    }
+
+    /**
+     * @return whether the airspace of this controller is painted from a matching boundary, as opposed to a generic
+     * placeholder shape
+     */
+    public boolean isAirspaceBoundaryMatched() {
+        return airspaceBoundaryMatched;
+    }
+
+    public void setAirspaceBoundaryMatched(final boolean airspaceBoundaryMatched) {
+        this.airspaceBoundaryMatched = airspaceBoundaryMatched;
     }
 
     public Data getWorkingLocation() {

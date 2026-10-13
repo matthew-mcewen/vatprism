@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Added approach and departure boundaries from the [SimAware TRACON Project](https://github.com/vatsimnetwork/simaware-tracon-project), the approach circle is now only painted for controllers without a known boundary
+- Added sectors from [VATGlasses](https://github.com/lennycolton/vatglasses-data), painted for the online controllers at a single flight level
+- Added Vatglasses settings: with a CID and automatic mode, the flight level follows your own flight
+- Added a VG button to the pilot details to follow the altitude of any other flight
+
 ## [0.3.6](https://github.com/marvk/vatprism/compare/v0.3.4...v0.3.5) - 2025-04-18
 
 ### Fixed
