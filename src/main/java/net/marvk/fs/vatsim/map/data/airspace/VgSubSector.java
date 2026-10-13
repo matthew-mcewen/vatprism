@@ -40,6 +40,10 @@ public class VgSubSector {
         return min <= level && level <= max;
     }
 
+    public double distance(final javafx.geometry.Point2D point) {
+        return AirspacePolygons.distance(polygon, point);
+    }
+
     List<VgSector.RunwayCondition> getRunways() {
         return runways;
     }

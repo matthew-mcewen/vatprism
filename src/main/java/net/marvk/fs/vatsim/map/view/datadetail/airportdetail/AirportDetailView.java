@@ -7,8 +7,10 @@ import net.marvk.fs.vatsim.map.data.Airport;
 import net.marvk.fs.vatsim.map.data.FlightInformationRegionBoundary;
 import net.marvk.fs.vatsim.map.view.BindingsUtil;
 import net.marvk.fs.vatsim.map.view.datadetail.DataDetailPane;
+import net.marvk.fs.vatsim.map.view.datadetail.bookingsdetail.BookingsDetailView;
 import net.marvk.fs.vatsim.map.view.datadetail.controllersdetail.ControllersDetailView;
 import net.marvk.fs.vatsim.map.view.datadetail.detailsubview.DataDetailSubView;
+import net.marvk.fs.vatsim.map.view.datadetail.eventsdetail.EventsDetailView;
 import net.marvk.fs.vatsim.map.view.datadetail.metardetail.MetarDetailView;
 import net.marvk.fs.vatsim.map.view.datadetail.trafficdetail.TrafficDetailView;
 
@@ -28,6 +30,10 @@ public class AirportDetailView extends DataDetailSubView<AirportDetailViewModel,
     @FXML
     private Label name;
 
+    @FXML
+    private EventsDetailView eventsController;
+    @FXML
+    private BookingsDetailView bookingsController;
     @FXML
     private ControllersDetailView controllersController;
     @FXML
@@ -75,6 +81,8 @@ public class AirportDetailView extends DataDetailSubView<AirportDetailViewModel,
             country.setText(airport.getCountry().getName());
         }
 
+        eventsController.getViewModel().setData(airport);
+        bookingsController.getViewModel().setData(airport);
         controllersController.getViewModel().setData(airport.getControllers());
         arrivalsController.getViewModel().setData(airport.getArriving());
         departuresController.getViewModel().setData(airport.getDeparting());
@@ -85,6 +93,8 @@ public class AirportDetailView extends DataDetailSubView<AirportDetailViewModel,
     protected void clear(final Airport oldValue) {
         super.clear(oldValue);
         metarController.getViewModel().setAirport(null);
+        eventsController.getViewModel().setData(null);
+        bookingsController.getViewModel().setData(null);
         if (oldValue != null) {
             controllersController.getViewModel().setData(null);
         }

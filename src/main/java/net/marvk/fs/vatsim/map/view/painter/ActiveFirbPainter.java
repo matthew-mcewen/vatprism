@@ -35,7 +35,7 @@ public class ActiveFirbPainter extends CompositeMapPainter<FlightInformationRegi
 
     @Override
     public void paint(final GraphicsContext c, final FlightInformationRegionBoundary firb) {
-        if (firb.hasFirControllers()) {
+        if (firb.hasUncoveredFirControllers()) {
             firbPainter.paint(c, firb);
         }
     }

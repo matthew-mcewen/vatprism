@@ -94,6 +94,17 @@ public class VatglassesData {
      * @return the controlled sub sectors, grouped by colour
      */
     public List<ActiveSubSector> resolve(final Collection<? extends AtcStation> stations, final ZonedDateTime now) {
+        return resolve(stations, now, null);
+    }
+
+    /**
+     * Determines which sub sectors are controlled by the passed stations, at all levels.
+     *
+     * @param fixedColour the colour of all sub sectors, {@code null} to use the colours of the positions
+     *
+     * @return the controlled sub sectors, grouped by colour
+     */
+    public List<ActiveSubSector> resolve(final Collection<? extends AtcStation> stations, final ZonedDateTime now, final Color fixedColour) {
         if (sectors.isEmpty()) {
             return Collections.emptyList();
         }
@@ -117,7 +128,9 @@ public class VatglassesData {
                 continue;
             }
 
-            final Color colour = colours.computeIfAbsent(owner, e -> colour(e, sector, online));
+            final Color colour = fixedColour == null
+                    ? colours.computeIfAbsent(owner, e -> colour(e, sector, online))
+                    : fixedColour;
 
             for (final VgSubSector subSector : sector.getSubSectors()) {
                 if (isRunwayConfigurationActive(subSector.getRunways())) {
@@ -142,34 +155,52 @@ public class VatglassesData {
         final Map<VgPosition, String> result = new HashMap<>();
 
         for (final AtcStation station : stations) {
-            final String callsign = station.getCallsign();
-
-            if (callsign == null) {
-                continue;
+            for (final VgPosition position : positionsOf(station)) {
+                result.putIfAbsent(position, station.getCallsign());
             }
+        }
 
-            final int firstSeparator = callsign.indexOf('_');
+        return result;
+    }
 
-            if (firstSeparator <= 0) {
-                continue;
-            }
+    /**
+     * @return the positions the station is working, matched by callsign prefix, callsign suffix and frequency. A
+     * station without a frequency, e.g. a booked one, is only matched if there is no other candidate
+     */
+    public List<VgPosition> positionsOf(final AtcStation station) {
+        final String callsign = station.getCallsign();
 
-            final String prefix = callsign.substring(0, firstSeparator);
-            final String type = callsign.substring(callsign.lastIndexOf('_') + 1);
+        if (callsign == null) {
+            return Collections.emptyList();
+        }
 
-            final List<VgPosition> candidates = positionsByPrefixAndType.get(indexKey(prefix, type));
+        final int firstSeparator = callsign.indexOf('_');
 
-            if (candidates == null) {
-                continue;
-            }
+        if (firstSeparator <= 0) {
+            return Collections.emptyList();
+        }
 
-            final int frequency = parseFrequency(station.getFrequency());
+        final String prefix = callsign.substring(0, firstSeparator);
+        final String type = callsign.substring(callsign.lastIndexOf('_') + 1);
 
-            for (final VgPosition candidate : candidates) {
-                final int candidateFrequency = candidate.getFrequencyKhz();
-                if (candidateFrequency == VgPosition.ANY_FREQUENCY || Math.abs(candidateFrequency - frequency) < FREQUENCY_TOLERANCE_KHZ) {
-                    result.putIfAbsent(candidate, callsign);
-                }
+        final List<VgPosition> candidates = positionsByPrefixAndType.get(indexKey(prefix, type));
+
+        if (candidates == null) {
+            return Collections.emptyList();
+        }
+
+        final int frequency = parseFrequency(station.getFrequency());
+
+        if (frequency == VgPosition.ANY_FREQUENCY && candidates.size() == 1) {
+            return List.copyOf(candidates);
+        }
+
+        final List<VgPosition> result = new ArrayList<>(1);
+
+        for (final VgPosition candidate : candidates) {
+            final int candidateFrequency = candidate.getFrequencyKhz();
+            if (candidateFrequency == VgPosition.ANY_FREQUENCY || Math.abs(candidateFrequency - frequency) < FREQUENCY_TOLERANCE_KHZ) {
+                result.add(candidate);
             }
         }
 

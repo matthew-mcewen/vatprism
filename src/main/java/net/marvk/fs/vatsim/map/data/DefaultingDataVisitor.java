@@ -1,5 +1,9 @@
 package net.marvk.fs.vatsim.map.data;
 
+import net.marvk.fs.vatsim.map.data.airspace.TraconBoundary;
+import net.marvk.fs.vatsim.map.data.airspace.VgPosition;
+import net.marvk.fs.vatsim.map.data.event.Event;
+
 import java.util.Objects;
 
 public class DefaultingDataVisitor<E> implements DataVisitor<E> {
@@ -65,6 +69,21 @@ public class DefaultingDataVisitor<E> implements DataVisitor<E> {
 
     @Override
     public E visit(final Client client) {
+        return defaultValue;
+    }
+
+    @Override
+    public E visit(final TraconBoundary traconBoundary) {
+        return defaultValue;
+    }
+
+    @Override
+    public E visit(final VgPosition vatglassesPosition) {
+        return defaultValue;
+    }
+
+    @Override
+    public E visit(final Event event) {
         return defaultValue;
     }
 }

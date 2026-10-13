@@ -1,5 +1,6 @@
 package net.marvk.fs.vatsim.map.data.airspace;
 
+import javafx.geometry.Point2D;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -94,6 +95,20 @@ class TraconRepositoryTest {
         final TraconBoundary boundary = repository.match("NFFN_APP").get(0);
 
         Assertions.assertEquals(2, boundary.getPolygons().get(0).boundary().getWidth(), 1e-9);
+    }
+
+    @Test
+    void measuresTheDistanceToABoundary() {
+        final TraconBoundary boundary = repository.match("LAX_APP").get(0);
+
+        Assertions.assertEquals(0, boundary.distance(new Point2D(0.5, -0.5)), 1e-9);
+        Assertions.assertTrue(boundary.distance(new Point2D(2, 0)) >= 1);
+
+        final TraconBoundary antimeridian = repository.match("NFFN_APP").get(0);
+
+        Assertions.assertEquals(0, antimeridian.distance(new Point2D(179.5, 0)), 1e-9);
+        Assertions.assertEquals(0, antimeridian.distance(new Point2D(-179.5, 0)), 1e-9);
+        Assertions.assertTrue(antimeridian.distance(new Point2D(0, 0)) > 100);
     }
 
     @Test

@@ -11,6 +11,7 @@ import net.marvk.fs.vatsim.map.data.FlightInformationRegion;
 import net.marvk.fs.vatsim.map.data.FlightInformationRegionBoundary;
 import net.marvk.fs.vatsim.map.data.UpperInformationRegion;
 import net.marvk.fs.vatsim.map.view.datadetail.DataDetailPane;
+import net.marvk.fs.vatsim.map.view.datadetail.bookingsdetail.BookingsDetailView;
 import net.marvk.fs.vatsim.map.view.datadetail.controllersdetail.ControllersDetailView;
 import net.marvk.fs.vatsim.map.view.datadetail.detailsubview.DataDetailSubView;
 import net.marvk.fs.vatsim.map.view.datadetail.detailsubview.DataDetailSubViewModel;
@@ -33,6 +34,8 @@ public class FlightInformationRegionBoundaryDetailView extends DataDetailSubView
     private VBox container;
     @FXML
     private GridPane uirsGrid;
+    @FXML
+    private BookingsDetailView bookingsController;
     @FXML
     private ControllersDetailView controllersController;
 
@@ -87,6 +90,7 @@ public class FlightInformationRegionBoundaryDetailView extends DataDetailSubView
         status.setHeaderText(firb.getIcao());
         firb.getUpperInformationRegions().addListener(this::uirsChanged);
         uirsChanged(null);
+        bookingsController.getViewModel().setData(firb);
         controllersController.getViewModel().setData(firb.getControllers());
 
         if (firb.getCountry() == null) {
@@ -99,6 +103,7 @@ public class FlightInformationRegionBoundaryDetailView extends DataDetailSubView
     @Override
     protected void clear(final FlightInformationRegionBoundary oldValue) {
         super.clear(oldValue);
+        bookingsController.getViewModel().setData(null);
         if (oldValue != null) {
             oldValue.getUpperInformationRegions().removeListener(this::uirsChanged);
             controllersController.getViewModel().setData(null);

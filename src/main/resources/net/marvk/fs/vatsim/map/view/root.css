@@ -106,6 +106,14 @@
     -fx-icon-color: -vatsim-error-color;
 }
 
+.icon-button .pennon-icon {
+    -fx-fill: -vatsim-text-color-dark;
+}
+
+.icon-button:selected .pennon-icon {
+    -fx-fill: -vatsim-text-color-light;
+}
+
 
 .tab-header-background {
     -fx-background-color: -vatsim-background-color;

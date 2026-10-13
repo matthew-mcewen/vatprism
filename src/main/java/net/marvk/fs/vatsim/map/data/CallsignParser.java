@@ -4,9 +4,9 @@ import com.google.inject.Inject;
 import javafx.geometry.Point2D;
 import lombok.Value;
 import lombok.extern.log4j.Log4j2;
-import net.marvk.fs.vatsim.api.data.VatsimClient;
 import net.marvk.fs.vatsim.api.data.VatsimClientType;
 import net.marvk.fs.vatsim.api.data.VatsimController;
+import org.apache.logging.log4j.Level;
 
 import java.util.Arrays;
 import java.util.List;
@@ -43,9 +43,24 @@ public class CallsignParser {
             return Result.EMPTY;
         }
 
-        final String callsign = controller.getCallsign();
-        final String cid = controller.getCid();
+        final String description = "cid: %s, name: %s".formatted(controller.getCid(), controller.getName());
 
+        return parse(controller.getCallsign(), description, Level.WARN);
+    }
+
+    /**
+     * Parses the callsign of a station which is not online, e.g. a booked one. Unknown callsigns are expected here and
+     * therefore not logged as warnings.
+     */
+    public Result parse(final String callsign) {
+        if (callsign == null) {
+            return Result.EMPTY;
+        }
+
+        return parse(callsign, "not online", Level.DEBUG);
+    }
+
+    private Result parse(final String callsign, final String description, final Level level) {
         final String[] sections = UNDERSCORES.split(callsign);
         final int n = sections.length;
 
@@ -69,7 +84,7 @@ public class CallsignParser {
             infix = sections[1];
             controllerType = ControllerType.fromString(sections[2], defaultControllerType);
         } else {
-            log.warn("Unexpected callsign " + callsign);
+            log.log(level, "Unexpected callsign " + callsign);
             return Result.EMPTY;
         }
 
@@ -83,24 +98,26 @@ public class CallsignParser {
 
         if (controllerType != ControllerType.OBS) {
             if (controllerType != ControllerType.CTR && controllerType != ControllerType.FSS) {
-                airport = getAirport(controller, identifier);
+                airport = getAirport(identifier);
 
                 if (airport == null) {
-                    log.warn(
-                            "Could not determine airport \"%s\" for controller with callsign: %s, cid: %s, name: %s, type: %s"
-                                    .formatted(identifier, callsign, cid, controller.getName(), controllerType)
+                    log.log(
+                            level,
+                            "Could not determine airport \"%s\" for controller with callsign: %s, %s, type: %s"
+                                    .formatted(identifier, callsign, description, controllerType)
                     );
                 }
             } else {
-                uir = getUir(controller, identifier);
+                uir = getUir(identifier);
 
                 if (uir == null) {
-                    fir = getFir(controller, identifier, infix, controllerType);
+                    fir = getFir(callsign, description, level, identifier, infix, controllerType);
 
                     if (fir.isEmpty()) {
-                        log.warn(
-                                "Could not determine FIR/UIR \"%s\" for controller with callsign: %s, cid: %s, name: %s, type: %s"
-                                        .formatted(identifier, callsign, cid, controller.getName(), controllerType)
+                        log.log(
+                                level,
+                                "Could not determine FIR/UIR \"%s\" for controller with callsign: %s, %s, type: %s"
+                                        .formatted(identifier, callsign, description, controllerType)
                         );
                     }
                 } else {
@@ -123,7 +140,7 @@ public class CallsignParser {
         return result;
     }
 
-    private FirResult getFir(final VatsimController controller, final String identifier, final String infix, final ControllerType controllerType) {
+    private FirResult getFir(final String callsign, final String description, final Level level, final String identifier, final String infix, final ControllerType controllerType) {
         final List<FlightInformationRegion> firs = flightInformationRegionRepository.getByIdentifierAndInfix(identifier, infix);
 
         if (firs.isEmpty()) {
@@ -143,9 +160,10 @@ public class CallsignParser {
 
         if (firs.size() > 1) {
             if (firs.stream().map(FlightInformationRegion::getName).distinct().count() > 1) {
-                log.warn(
-                        "Could not determine exact FIR \"%s\" for controller with callsign: %s, cid: %s, name: %s, type: %s; found %s"
-                                .formatted(identifier, controller.getCallsign(), controller.getCid(), controller.getName(), controllerType, firs)
+                log.log(
+                        level,
+                        "Could not determine exact FIR \"%s\" for controller with callsign: %s, %s, type: %s; found %s"
+                                .formatted(identifier, callsign, description, controllerType, firs)
                 );
             }
         }
@@ -160,27 +178,24 @@ public class CallsignParser {
                 .orElse(FirResult.EMPTY);
     }
 
-    private UpperInformationRegion getUir(final VatsimClient vatsimClient, final String identifier) {
+    private UpperInformationRegion getUir(final String identifier) {
         return returnFirst(
                 () -> extractViewModel(
                         upperInformationRegionRepository.getByIcao(identifier),
-                        e -> new Point2D(0., 0.),
-                        vatsimClient
+                        e -> new Point2D(0., 0.)
                 )
         );
     }
 
-    private Airport getAirport(final VatsimClient vatsimClient, final String identifier) {
+    private Airport getAirport(final String identifier) {
         return returnFirst(
                 () -> extractViewModel(
                         airportRepository.getByIcao(identifier),
-                        e -> e.positionProperty().get(),
-                        vatsimClient
+                        e -> e.positionProperty().get()
                 ),
                 () -> extractViewModel(
                         airportRepository.getByIata(identifier),
-                        e -> e.positionProperty().get(),
-                        vatsimClient
+                        e -> e.positionProperty().get()
                 )
         );
     }
@@ -190,7 +205,7 @@ public class CallsignParser {
         return Arrays.stream(supplier).map(Supplier::get).filter(Objects::nonNull).findFirst().orElse(null);
     }
 
-    private static <ViewModel> ViewModel extractViewModel(final List<ViewModel> viewModels, final Function<ViewModel, Point2D> positionExtractor, final VatsimClient vatsimClient) {
+    private static <ViewModel> ViewModel extractViewModel(final List<ViewModel> viewModels, final Function<ViewModel, Point2D> positionExtractor) {
         if (viewModels.isEmpty()) {
             return null;
         }

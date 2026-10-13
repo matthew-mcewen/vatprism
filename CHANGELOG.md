@@ -8,6 +8,21 @@
 - Added sectors from [VATGlasses](https://github.com/lennycolton/vatglasses-data), painted for the online controllers at a single flight level
 - Added Vatglasses settings: with a CID and automatic mode, the flight level follows your own flight
 - Added a VG button to the pilot details to follow the altitude of any other flight
+- TRACON boundaries are enabled by default, Vatglasses sectors are an alternative to them: enabling one disables the other
+- Added a VG toggle to the toolbar, TRACON boundaries return when Vatglasses is toggled off
+- Added a Set CID link to the status bar while Vatglasses has no CID or flight to follow
+- Vatglasses sectors replace the FIR, UIR and approach circle of the controllers they cover, other controllers keep theirs
+- Added a setting to switch Vatglasses on while your own CID is online and off when it disconnects
+- TRACON boundaries and Vatglasses sectors can be selected like FIRs, through the context menu or the middle mouse button
+- Added events from the [VATSIM Events API](https://vatsim.dev/api/events-api/list-all-events), loaded at most once per hour while events are shown
+- Added an events toggle to the toolbar, airports with an upcoming event are marked with a pennon
+- Added an Events section to the airport details and an event detail view with the times, airports and description of an event
+- Events can be added to the calendar of the operating system and can send a reminder notification before they start
+- Added bookings from [VATSIM ATC Bookings](https://atc-bookings.vatsim.net), loaded at most every 15 minutes while bookings are shown
+- Added a bookings toggle to the toolbar, booked positions which are not online are painted like online ones, but in grey
+- Added a Bookings section to the airport, FIR, UIR, TRACON and Vatglasses position details, hidden unless there are bookings
+- Added Bookings settings: how many hours ahead bookings are shown (3 by default, up to 7 days)
+- Added Events settings: event types to show (events and controller examinations by default), how many hours ahead events are shown (48 by default) and how long before the start reminders are sent (30 minutes by default)
 
 ## [0.3.6](https://github.com/marvk/vatprism/compare/v0.3.4...v0.3.5) - 2025-04-18
 

@@ -183,6 +183,20 @@ public class FlightInformationRegionBoundary implements Settable<VatsimAirspace>
         return false;
     }
 
+    /**
+     * @return whether any controller of this FIR has no more detailed boundary, such that the FIR itself represents
+     * their airspace
+     */
+    public boolean hasUncoveredFirControllers() {
+        for (final Controller controller : controllers) {
+            if (controller.getWorkingUpperInformationRegion() == null && !controller.isAirspaceBoundaryMatched()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public boolean hasFirControllers() {
         return controllers.stream().anyMatch(e -> e.getWorkingUpperInformationRegion() == null);
     }

@@ -78,10 +78,22 @@ public class ConfigFilePreferences implements Preferences, Writable {
         booleanProperty("context_menu.show_all_pilots", false);
 
         booleanProperty("tracon.enabled", true);
-        booleanProperty("vatglasses.enabled", true);
+        booleanProperty("tracon.preferred", true);
+        booleanProperty("vatglasses.enabled", false);
         stringProperty("vatglasses.cid", "");
         booleanProperty("vatglasses.automatic", true);
+        booleanProperty("vatglasses.auto_switch", false);
         integerProperty("vatglasses.manual_level", 200);
+
+        booleanProperty("events.enabled", false);
+        booleanProperty("events.show_events", true);
+        booleanProperty("events.show_exams", true);
+        booleanProperty("events.show_vasops", false);
+        integerProperty("events.horizon_hours", 48);
+        integerProperty("events.reminder_minutes", 30);
+
+        booleanProperty("bookings.enabled", false);
+        integerProperty("bookings.horizon_hours", 3);
     }
 
     private void migrateOldProperties() {

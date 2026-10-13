@@ -8,10 +8,13 @@ import javafx.scene.text.TextAlignment;
 import net.marvk.fs.vatsim.map.data.Airport;
 import net.marvk.fs.vatsim.map.data.Controller;
 import net.marvk.fs.vatsim.map.data.ControllerType;
+import net.marvk.fs.vatsim.map.data.booking.BookingService;
 import net.marvk.fs.vatsim.map.view.map.MapVariables;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class AirportPainter extends MapPainter<Airport> {
@@ -62,14 +65,21 @@ public class AirportPainter extends MapPainter<Airport> {
     private Color typesLabelColor = Color.WHITE.darker();
     @Parameter("Controller Border Color")
     private Color typesBorderColor = Color.BLACK.brighter();
+    @Parameter("Booked Color")
+    private Color bookedColor = Color.web("606060");
 
-    public AirportPainter(final MapVariables mapVariables) {
+    // Null if booked positions are not painted
+    private final BookingService bookingService;
+
+    public AirportPainter(final MapVariables mapVariables, final BookingService bookingService) {
         super(mapVariables);
+        this.bookingService = bookingService;
         setBackgroundColor();
     }
 
     public AirportPainter(final MapVariables mapVariables, final Color textColor, final Color airportColor, final boolean paintAll, final boolean paintControllers, final boolean paintBackground) {
         super(mapVariables);
+        this.bookingService = null;
         this.textColor = textColor;
         this.airportColor = airportColor;
         this.paintAll = paintAll;
@@ -92,7 +102,7 @@ public class AirportPainter extends MapPainter<Airport> {
         }
 
         if (!paintAll &&
-                !airport.hasControllers() &&
+                !isControlledOrBooked(airport) &&
                 (!paintUncontrolledButDestinationsOrArrivals || (!airport.hasArrivals() && !airport.hasDepartures()))
         ) {
             return;
@@ -120,10 +130,26 @@ public class AirportPainter extends MapPainter<Airport> {
         final String icao = airport.getIcao();
 
         final double textScale = c.getFont().getSize() / 12.0;
-        final boolean paintApproach = types.remove(ControllerType.DEP) | types.remove(ControllerType.APP);
+        final boolean onlineApproach = types.remove(ControllerType.DEP) | types.remove(ControllerType.APP);
+
+        // Booked positions which are not online, painted like the online ones but in a single colour
+        final Set<ControllerType> booked = EnumSet.noneOf(ControllerType.class);
+        if (bookingService != null) {
+            booked.addAll(bookingService.bookedTypes(airport));
+        }
+        final boolean bookedApproach = (booked.remove(ControllerType.DEP) | booked.remove(ControllerType.APP)) && !onlineApproach;
+        booked.removeAll(types);
+        types.addAll(booked);
+        types.sort(ControllerType.COMPARATOR);
+
+        final boolean paintApproach = onlineApproach || bookedApproach;
+        final boolean approachBoundaryMatched = onlineApproach
+                ? isApproachBoundaryMatched(airport)
+                : bookedApproach && bookingService.isApproachBoundaryBooked(airport);
+        final Color approachColor = onlineApproach ? appColor : bookedColor;
         // The circle is only a placeholder for approach controllers without a known boundary
         final boolean paintApproachCircle = mapVariables.getScale() > (40 / approachRadius) * textScale
-                && !(paintApproach && isApproachBoundaryMatched(airport));
+                && !(paintApproach && approachBoundaryMatched);
         final boolean paintApproachLabel = paintApproachCircle;
 
         if (paintControllers) {
@@ -133,12 +159,12 @@ public class AirportPainter extends MapPainter<Airport> {
                 final double rHalf = r / 2.0;
 
                 if (paintApproachCircle) {
-                    c.setStroke(appColor);
+                    c.setStroke(approachColor);
                     painterHelper.strokeOval(c, x - rHalf, y - rHalf, r, r);
                 }
 
                 if (paintApproachLabel && text) {
-                    c.setFill(appColor);
+                    c.setFill(approachColor);
                     c.setTextBaseline(VPos.BOTTOM);
                     painterHelper.fillText(c, icao, x, y - rHalf);
                 }
@@ -153,6 +179,10 @@ public class AirportPainter extends MapPainter<Airport> {
             c.setTextBaseline(VPos.TOP);
             if (paintApproach && types.isEmpty() && !paintApproachCircle) {
                 types.add(ControllerType.APP);
+
+                if (bookedApproach) {
+                    booked.add(ControllerType.APP);
+                }
             }
 
             final int n = types.size();
@@ -160,7 +190,7 @@ public class AirportPainter extends MapPainter<Airport> {
             final int typesWidth = (int) Math.ceil(textScale * TYPES_WIDTH);
             for (int i = 0; i < n; i++) {
                 final ControllerType type = types.get(i);
-                c.setFill(color(type));
+                c.setFill(booked.contains(type) ? bookedColor : color(type));
                 c.setStroke(typesBorderColor);
                 final double xCur = typeLabelX(x, n, i, typesWidth);
                 final double yCur = typeLabelY(y);
@@ -180,7 +210,7 @@ public class AirportPainter extends MapPainter<Airport> {
             }
 
             if (paintApproach && !paintApproachCircle) {
-                c.setStroke(appColor);
+                c.setStroke(approachColor);
                 final double xCur = typeLabelX(x, n, 0, typesWidth);
                 final double yCur = typeLabelY(y);
 
@@ -190,7 +220,7 @@ public class AirportPainter extends MapPainter<Airport> {
 
         if (text) {
             final boolean uncontrolledButDestinationOriginEnabled = (airport.hasDepartures() || airport.hasArrivals()) && paintUncontrolledButDestinationsOrArrivalLabels;
-            if (paintAllLabels || airport.hasControllers() || uncontrolledButDestinationOriginEnabled) {
+            if (paintAllLabels || isControlledOrBooked(airport) || uncontrolledButDestinationOriginEnabled) {
                 painterHelper.fillTextWithBackground(
                         c,
                         x,
@@ -204,6 +234,10 @@ public class AirportPainter extends MapPainter<Airport> {
                 );
             }
         }
+    }
+
+    private boolean isControlledOrBooked(final Airport airport) {
+        return airport.hasControllers() || (bookingService != null && bookingService.hasBookedTypes(airport));
     }
 
     private static boolean isApproachBoundaryMatched(final Airport airport) {

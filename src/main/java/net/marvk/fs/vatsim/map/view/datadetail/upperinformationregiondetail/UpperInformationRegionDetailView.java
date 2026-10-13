@@ -15,6 +15,7 @@ import net.marvk.fs.vatsim.map.data.FlightInformationRegionBoundary;
 import net.marvk.fs.vatsim.map.data.ImmutableStringProperty;
 import net.marvk.fs.vatsim.map.data.UpperInformationRegion;
 import net.marvk.fs.vatsim.map.view.datadetail.DataDetailPane;
+import net.marvk.fs.vatsim.map.view.datadetail.bookingsdetail.BookingsDetailView;
 import net.marvk.fs.vatsim.map.view.datadetail.controllersdetail.ControllersDetailView;
 import net.marvk.fs.vatsim.map.view.datadetail.detailsubview.DataDetailSubView;
 
@@ -36,6 +37,8 @@ public class UpperInformationRegionDetailView extends DataDetailSubView<UpperInf
     @FXML
     private GridPane firsGrid;
     @FXML
+    private BookingsDetailView bookingsController;
+    @FXML
     private ControllersDetailView controllersController;
 
     @Override
@@ -56,6 +59,7 @@ public class UpperInformationRegionDetailView extends DataDetailSubView<UpperInf
         status.setHeaderText(uir.getIcao());
         position.setText(positionLabel(GeomUtil.center(uir.getBounds())));
 
+        bookingsController.getViewModel().setData(uir);
         controllersController.getViewModel().setData(uir.getControllers());
 
         uir.getFlightInformationRegionBoundaries().addListener(this::firsChanged);
@@ -105,6 +109,7 @@ public class UpperInformationRegionDetailView extends DataDetailSubView<UpperInf
     @Override
     protected void clear(final UpperInformationRegion oldValue) {
         super.clear(oldValue);
+        bookingsController.getViewModel().setData(null);
         if (oldValue != null) {
             controllersController.getViewModel().setData(null);
         }

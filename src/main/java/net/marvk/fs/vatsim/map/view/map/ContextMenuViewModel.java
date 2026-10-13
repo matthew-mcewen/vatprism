@@ -2,6 +2,8 @@ package net.marvk.fs.vatsim.map.view.map;
 
 import javafx.geometry.Point2D;
 import net.marvk.fs.vatsim.map.data.*;
+import net.marvk.fs.vatsim.map.data.airspace.TraconBoundary;
+import net.marvk.fs.vatsim.map.data.airspace.VgPosition;
 
 import java.util.Comparator;
 import java.util.List;
@@ -10,6 +12,8 @@ import java.util.Optional;
 public class ContextMenuViewModel {
     private final ContextMenuItems<Pilot> pilots;
     private final ContextMenuItems<Airport> airports;
+    private final ContextMenuItems<VgPosition> vatglassesPositions;
+    private final ContextMenuItems<TraconBoundary> tracons;
     private final ContextMenuItems<FlightInformationRegionBoundary> firbs;
     private final ContextMenuItems<UpperInformationRegion> uirs;
 
@@ -19,6 +23,8 @@ public class ContextMenuViewModel {
         this(
                 new ContextMenuItems<>("Pilots"),
                 new ContextMenuItems<>("Airports"),
+                new ContextMenuItems<>("Vatglasses"),
+                new ContextMenuItems<>("TMAs"),
                 new ContextMenuItems<>("FIRs"),
                 new ContextMenuItems<>("UIRs")
         );
@@ -28,6 +34,8 @@ public class ContextMenuViewModel {
         this(
                 new ContextMenuItems<>(contextMenuViewModel.pilots),
                 new ContextMenuItems<>(contextMenuViewModel.airports),
+                new ContextMenuItems<>(contextMenuViewModel.vatglassesPositions),
+                new ContextMenuItems<>(contextMenuViewModel.tracons),
                 new ContextMenuItems<>(contextMenuViewModel.firbs),
                 new ContextMenuItems<>(contextMenuViewModel.uirs)
         );
@@ -36,16 +44,22 @@ public class ContextMenuViewModel {
     private ContextMenuViewModel(
             final ContextMenuItems<Pilot> pilots,
             final ContextMenuItems<Airport> airports,
+            final ContextMenuItems<VgPosition> vatglassesPositions,
+            final ContextMenuItems<TraconBoundary> tracons,
             final ContextMenuItems<FlightInformationRegionBoundary> firbs,
             final ContextMenuItems<UpperInformationRegion> uirs
     ) {
         this.pilots = pilots;
         this.airports = airports;
+        this.vatglassesPositions = vatglassesPositions;
+        this.tracons = tracons;
         this.firbs = firbs;
         this.uirs = uirs;
         this.contextMenuItems = List.of(
                 pilots,
                 airports,
+                vatglassesPositions,
+                tracons,
                 firbs,
                 uirs
         );
@@ -68,6 +82,25 @@ public class ContextMenuViewModel {
 
         if (pilot.isPresent()) {
             return pilot;
+        }
+
+        // Both are sorted from the most to the least specific
+        final Optional<VgPosition> vatglassesPosition = vatglassesPositions
+                .getItems()
+                .stream()
+                .findFirst();
+
+        if (vatglassesPosition.isPresent()) {
+            return vatglassesPosition;
+        }
+
+        final Optional<TraconBoundary> tracon = tracons
+                .getItems()
+                .stream()
+                .findFirst();
+
+        if (tracon.isPresent()) {
+            return tracon;
         }
 
         final Optional<FlightInformationRegionBoundary> firb = firbs
@@ -124,6 +157,14 @@ public class ContextMenuViewModel {
 
     public ContextMenuItems<FlightInformationRegionBoundary> getFirbs() {
         return firbs;
+    }
+
+    public ContextMenuItems<TraconBoundary> getTracons() {
+        return tracons;
+    }
+
+    public ContextMenuItems<VgPosition> getVatglassesPositions() {
+        return vatglassesPositions;
     }
 
     public ContextMenuItems<Airport> getAirports() {

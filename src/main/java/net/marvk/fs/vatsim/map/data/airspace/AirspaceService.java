@@ -5,10 +5,11 @@ import com.google.inject.Singleton;
 import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
 import javafx.beans.property.BooleanProperty;
+import javafx.collections.ObservableList;
+import javafx.scene.paint.Color;
 import lombok.extern.log4j.Log4j2;
 import net.marvk.fs.vatsim.map.data.ClientRepository;
 import net.marvk.fs.vatsim.map.data.Controller;
-import net.marvk.fs.vatsim.map.data.Preferences;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -20,9 +21,12 @@ import java.time.Duration;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
-import java.util.LinkedHashSet;
+import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
@@ -35,8 +39,6 @@ import java.util.concurrent.Executors;
 @Log4j2
 @Singleton
 public class AirspaceService {
-    public static final String TRACON_ENABLED_KEY = "tracon.enabled";
-
     private static final String TRACON_FILE_NAME = "TRACONBoundaries.geojson";
     private static final String TRACON_URL = "https://github.com/vatsimnetwork/simaware-tracon-project/releases/latest/download/TRACONBoundaries.geojson";
     private static final String VATGLASSES_FILE_NAME = "vatglasses-data.zip";
@@ -50,6 +52,8 @@ public class AirspaceService {
     private final VatglassesState vatglassesState;
 
     private final BooleanProperty traconEnabled;
+
+    private Set<VgPosition> onlinePositions = Collections.emptySet();
 
     private final ExecutorService executor = Executors.newSingleThreadExecutor(runnable -> {
         final Thread thread = new Thread(runnable, "airspace-data-loader");
@@ -74,13 +78,12 @@ public class AirspaceService {
     public AirspaceService(
             final AirspaceDataFetcher fetcher,
             final ClientRepository clientRepository,
-            final VatglassesState vatglassesState,
-            final Preferences preferences
+            final VatglassesState vatglassesState
     ) {
         this.fetcher = fetcher;
         this.clientRepository = clientRepository;
         this.vatglassesState = vatglassesState;
-        this.traconEnabled = preferences.booleanProperty(TRACON_ENABLED_KEY, true);
+        this.traconEnabled = vatglassesState.traconEnabledProperty();
     }
 
     /**
@@ -102,6 +105,7 @@ public class AirspaceService {
         vatglassesState.enabledProperty().addListener(refresh);
         vatglassesState.cidProperty().addListener(refresh);
         vatglassesState.automaticProperty().addListener(refresh);
+        vatglassesState.autoSwitchProperty().addListener(refresh);
         vatglassesState.manualLevelProperty().addListener(refresh);
         vatglassesState.overridePilotProperty().addListener(refresh);
 
@@ -114,27 +118,65 @@ public class AirspaceService {
      * thread.
      */
     public void refresh() {
+        // May toggle the layers, so it has to come first
+        vatglassesState.update(clientRepository.pilots());
+
         final List<Controller> controllers = clientRepository.controllers();
 
         final boolean tracon = traconEnabled.get();
-        final Set<TraconBoundary> tracons = new LinkedHashSet<>();
+        final boolean vatglasses = vatglassesState.enabledProperty().get();
+
+        final Map<TraconBoundary, List<Controller>> tracons = new LinkedHashMap<>();
+        final Map<VgPosition, List<Controller>> positions = new LinkedHashMap<>();
 
         for (final Controller controller : controllers) {
             final List<TraconBoundary> matches = tracon
                     ? traconRepository.match(controller.getCallsign())
                     : Collections.emptyList();
 
-            tracons.addAll(matches);
+            for (final TraconBoundary match : matches) {
+                tracons.computeIfAbsent(match, e -> new ArrayList<>(1)).add(controller);
+            }
+
             controller.setAirspaceBoundaryMatched(!matches.isEmpty());
+
+            if (vatglasses) {
+                for (final VgPosition position : vatglassesData.positionsOf(controller)) {
+                    positions.computeIfAbsent(position, e -> new ArrayList<>(1)).add(controller);
+                }
+            }
         }
 
-        activeTracons = new ArrayList<>(tracons);
+        for (final TraconBoundary previous : activeTracons) {
+            if (!tracons.containsKey(previous)) {
+                previous.getControllers().clear();
+            }
+        }
+        tracons.forEach((boundary, boundaryControllers) -> setIfChanged(boundary.getControllers(), boundaryControllers));
+        activeTracons = new ArrayList<>(tracons.keySet());
 
-        activeSubSectors = vatglassesState.enabledProperty().get()
+        for (final VgPosition previous : onlinePositions) {
+            if (!positions.containsKey(previous)) {
+                previous.getControllers().clear();
+            }
+        }
+        positions.forEach((position, positionControllers) -> setIfChanged(position.getControllers(), positionControllers));
+        onlinePositions = positions.keySet();
+
+        activeSubSectors = vatglasses
                 ? vatglassesData.resolve(controllers, ZonedDateTime.now(ZoneOffset.UTC))
                 : Collections.emptyList();
 
-        vatglassesState.update(clientRepository.pilots());
+        // The sectors replace the FIR, UIR or approach circle of the controllers which own any
+        final Set<VgPosition> owners = Collections.newSetFromMap(new IdentityHashMap<>());
+
+        for (final ActiveSubSector activeSubSector : activeSubSectors) {
+            if (owners.add(activeSubSector.getOwner())) {
+                for (final Controller controller : positions.getOrDefault(activeSubSector.getOwner(), Collections.emptyList())) {
+                    controller.setAirspaceBoundaryMatched(true);
+                }
+            }
+        }
 
         final int level = vatglassesState.getLevel();
         final List<ActiveSubSector> visible = new ArrayList<>();
@@ -146,6 +188,12 @@ public class AirspaceService {
         }
 
         visibleSubSectors = visible.toArray(NO_SUB_SECTORS);
+    }
+
+    private static void setIfChanged(final ObservableList<Controller> target, final List<Controller> controllers) {
+        if (!target.equals(controllers)) {
+            target.setAll(controllers);
+        }
     }
 
     /**
@@ -160,6 +208,50 @@ public class AirspaceService {
      */
     public ActiveSubSector[] visibleSubSectors() {
         return visibleSubSectors;
+    }
+
+    /**
+     * @return the boundaries a station with the passed callsign would activate, none while the boundaries are disabled
+     */
+    public List<TraconBoundary> matchTracons(final String callsign) {
+        return traconEnabled.get() ? traconRepository.match(callsign) : Collections.emptyList();
+    }
+
+    /**
+     * @return the positions the station would work, none while VATGlasses is disabled
+     */
+    public List<VgPosition> matchVatglassesPositions(final AtcStation station) {
+        return vatglassesState.enabledProperty().get() ? vatglassesData.positionsOf(station) : Collections.emptyList();
+    }
+
+    /**
+     * Determines the sub sectors at the current level which the passed stations would control if they were online.
+     * Sub sectors which are controlled by an online position are left out. Relies on the results of the last
+     * {@link #refresh()}.
+     *
+     * @param colour the colour of all returned sub sectors
+     */
+    public ActiveSubSector[] bookedSubSectors(final Collection<? extends AtcStation> stations, final Color colour) {
+        if (!vatglassesState.enabledProperty().get() || stations.isEmpty()) {
+            return NO_SUB_SECTORS;
+        }
+
+        final Set<VgSubSector> controlled = Collections.newSetFromMap(new IdentityHashMap<>());
+
+        for (final ActiveSubSector activeSubSector : activeSubSectors) {
+            controlled.add(activeSubSector.getSubSector());
+        }
+
+        final int level = vatglassesState.getLevel();
+        final List<ActiveSubSector> result = new ArrayList<>();
+
+        for (final ActiveSubSector booked : vatglassesData.resolve(stations, ZonedDateTime.now(ZoneOffset.UTC), colour)) {
+            if (booked.getSubSector().containsLevel(level) && !controlled.contains(booked.getSubSector())) {
+                result.add(booked);
+            }
+        }
+
+        return result.toArray(NO_SUB_SECTORS);
     }
 
     private void loadRequired() {

@@ -93,7 +93,12 @@ public class AirspaceDataFetcher {
         request.setConfig(REQUEST_CONFIG);
 
         if (Files.exists(file) && Files.exists(etagFile)) {
-            request.setHeader(HttpHeaders.IF_NONE_MATCH, Files.readString(etagFile).strip());
+            final String etag = Files.readString(etagFile).strip();
+
+            // Not every server sends an ETag
+            if (!etag.isEmpty()) {
+                request.setHeader(HttpHeaders.IF_NONE_MATCH, etag);
+            }
         }
 
         try (final CloseableHttpResponse response = httpClient.execute(request)) {

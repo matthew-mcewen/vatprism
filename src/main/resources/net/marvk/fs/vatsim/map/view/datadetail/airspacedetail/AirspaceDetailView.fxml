@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import net.marvk.fs.vatsim.map.view.datadetail.DataDetailPane?>
+<?import java.lang.*?>
+<VBox styleClass="container" xmlns="http://javafx.com/javafx/11.0.1"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="net.marvk.fs.vatsim.map.view.datadetail.airspacedetail.AirspaceDetailView">
+    <fx:define>
+        <Double fx:id="descriptionColumn" fx:value="80"/>
+    </fx:define>
+    <children>
+        <DataDetailPane fx:id="status">
+            <contentNode>
+                <GridPane>
+                    <columnConstraints>
+                        <ColumnConstraints hgrow="SOMETIMES" maxWidth="-Infinity" minWidth="10.0"
+                                           prefWidth="$descriptionColumn"/>
+                        <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0"/>
+                    </columnConstraints>
+                    <rowConstraints>
+                        <RowConstraints/>
+                        <RowConstraints/>
+                        <RowConstraints/>
+                    </rowConstraints>
+                    <children>
+                        <Label styleClass="description" text="Name"/>
+                        <Label wrapText="true" fx:id="name" styleClass="mono" text="Label" GridPane.columnIndex="1"/>
+                        <Label styleClass="description" text="Type" GridPane.rowIndex="1"/>
+                        <Label fx:id="type" text="Label" GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+                        <Label styleClass="description" text="Map" GridPane.rowIndex="2"/>
+                        <Label onMouseClicked="#goTo" text="Show" GridPane.columnIndex="1" GridPane.rowIndex="2">
+                            <styleClass>
+                                <String fx:value="mono"/>
+                                <String fx:value="hyperlink-label"/>
+                            </styleClass>
+                        </Label>
+                    </children>
+                </GridPane>
+            </contentNode>
+        </DataDetailPane>
+        <fx:include fx:id="bookings" source="../bookingsdetail/BookingsDetailView.fxml"/>
+        <fx:include fx:id="controllers" source="../controllersdetail/ControllersDetailView.fxml"/>
+    </children>
+</VBox>

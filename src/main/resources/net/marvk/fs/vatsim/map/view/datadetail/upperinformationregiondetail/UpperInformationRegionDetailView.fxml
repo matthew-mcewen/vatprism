@@ -40,6 +40,7 @@
                 </GridPane>
             </contentNode>
         </DataDetailPane>
+        <fx:include fx:id="bookings" source="../bookingsdetail/BookingsDetailView.fxml"/>
         <fx:include fx:id="controllers" source="../controllersdetail/ControllersDetailView.fxml"/>
         <DataDetailPane fx:id="firsContainer" headerText="FIRs">
             <contentNode>

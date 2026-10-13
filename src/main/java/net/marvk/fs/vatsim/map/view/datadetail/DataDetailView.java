@@ -11,11 +11,17 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.VBox;
 import net.marvk.fs.vatsim.map.data.*;
+import net.marvk.fs.vatsim.map.data.airspace.TraconBoundary;
+import net.marvk.fs.vatsim.map.data.airspace.VgPosition;
+import net.marvk.fs.vatsim.map.data.event.Event;
+import net.marvk.fs.vatsim.map.view.datadetail.airspacedetail.AirspaceDetailView;
 import net.marvk.fs.vatsim.map.view.datadetail.airportdetail.AirportDetailView;
 import net.marvk.fs.vatsim.map.view.datadetail.airportdetail.AirportDetailViewModel;
 import net.marvk.fs.vatsim.map.view.datadetail.controllerdetail.ControllerDetailView;
 import net.marvk.fs.vatsim.map.view.datadetail.controllerdetail.ControllerDetailViewModel;
 import net.marvk.fs.vatsim.map.view.datadetail.detailsubview.DataDetailSubViewModel;
+import net.marvk.fs.vatsim.map.view.datadetail.eventdetail.EventDetailView;
+import net.marvk.fs.vatsim.map.view.datadetail.eventdetail.EventDetailViewModel;
 import net.marvk.fs.vatsim.map.view.datadetail.flightinformationregionboundarydetail.FlightInformationRegionBoundaryDetailView;
 import net.marvk.fs.vatsim.map.view.datadetail.pilotdetail.PilotDetailView;
 import net.marvk.fs.vatsim.map.view.datadetail.upperinformationregiondetail.UpperInformationRegionDetailView;
@@ -136,6 +142,10 @@ public class DataDetailView implements FxmlView<DataDetailViewModel> {
 
         private final ViewTuple<ControllerDetailView, ControllerDetailViewModel> controllerView;
 
+        private final ViewTuple<AirspaceDetailView, DataDetailSubViewModel<Data>> airspaceDetailView;
+
+        private final ViewTuple<EventDetailView, EventDetailViewModel> eventDetailView;
+
         public PaneManager(final Context context) {
             this.pilotDetailView = FluentViewLoader
                     .fxmlView(PilotDetailView.class)
@@ -161,6 +171,34 @@ public class DataDetailView implements FxmlView<DataDetailViewModel> {
                     .fxmlView(ControllerDetailView.class)
                     .context(context)
                     .load();
+
+            this.airspaceDetailView = FluentViewLoader
+                    .fxmlView(AirspaceDetailView.class)
+                    .context(context)
+                    .load();
+
+            this.eventDetailView = FluentViewLoader
+                    .fxmlView(EventDetailView.class)
+                    .context(context)
+                    .load();
+        }
+
+        @Override
+        public Optional<Parent> visit(final Event event) {
+            eventDetailView.getViewModel().setData(event);
+            return Optional.of(eventDetailView.getView());
+        }
+
+        @Override
+        public Optional<Parent> visit(final TraconBoundary traconBoundary) {
+            airspaceDetailView.getViewModel().setData(traconBoundary);
+            return Optional.of(airspaceDetailView.getView());
+        }
+
+        @Override
+        public Optional<Parent> visit(final VgPosition vatglassesPosition) {
+            airspaceDetailView.getViewModel().setData(vatglassesPosition);
+            return Optional.of(airspaceDetailView.getView());
         }
 
         @Override

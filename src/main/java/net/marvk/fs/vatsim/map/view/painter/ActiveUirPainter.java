@@ -2,6 +2,7 @@ package net.marvk.fs.vatsim.map.view.painter;
 
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
+import net.marvk.fs.vatsim.map.data.Controller;
 import net.marvk.fs.vatsim.map.data.UpperInformationRegion;
 import net.marvk.fs.vatsim.map.view.map.MapVariables;
 
@@ -28,8 +29,18 @@ public class ActiveUirPainter extends CompositeMapPainter<UpperInformationRegion
 
     @Override
     public void paint(final GraphicsContext c, final UpperInformationRegion uir) {
-        if (!uir.getControllers().isEmpty()) {
+        if (hasUncoveredControllers(uir)) {
             this.uirPainter.paint(c, uir);
         }
+    }
+
+    private static boolean hasUncoveredControllers(final UpperInformationRegion uir) {
+        for (final Controller controller : uir.getControllers()) {
+            if (!controller.isAirspaceBoundaryMatched()) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

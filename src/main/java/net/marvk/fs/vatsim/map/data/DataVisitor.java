@@ -1,5 +1,9 @@
 package net.marvk.fs.vatsim.map.data;
 
+import net.marvk.fs.vatsim.map.data.airspace.TraconBoundary;
+import net.marvk.fs.vatsim.map.data.airspace.VgPosition;
+import net.marvk.fs.vatsim.map.data.event.Event;
+
 public interface DataVisitor<E> {
     default E visit(final Data data) {
         return data.visit(this);
@@ -42,6 +46,18 @@ public interface DataVisitor<E> {
     }
 
     default E visit(final Client client) {
+        throw new UnsupportedOperationException("Not implemented");
+    }
+
+    default E visit(final TraconBoundary traconBoundary) {
+        throw new UnsupportedOperationException("Not implemented");
+    }
+
+    default E visit(final VgPosition vatglassesPosition) {
+        throw new UnsupportedOperationException("Not implemented");
+    }
+
+    default E visit(final Event event) {
         throw new UnsupportedOperationException("Not implemented");
     }
 }

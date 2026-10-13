@@ -32,6 +32,14 @@ public class TraconPainter extends MapPainter<TraconBoundary> {
         super(mapVariables);
     }
 
+    public TraconPainter(final MapVariables mapVariables, final Color color, final double lineWidth) {
+        super(mapVariables);
+        this.strokeColor = color;
+        this.lineWidth = lineWidth;
+        this.fillColor = color.deriveColor(0, 1, 1, 0.05);
+        this.textColor = color;
+    }
+
     @Override
     public void paint(final GraphicsContext c, final TraconBoundary boundary) {
         double width = 0;

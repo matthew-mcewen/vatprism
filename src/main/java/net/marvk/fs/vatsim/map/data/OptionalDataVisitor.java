@@ -1,5 +1,9 @@
 package net.marvk.fs.vatsim.map.data;
 
+import net.marvk.fs.vatsim.map.data.airspace.TraconBoundary;
+import net.marvk.fs.vatsim.map.data.airspace.VgPosition;
+import net.marvk.fs.vatsim.map.data.event.Event;
+
 import java.util.Optional;
 
 public interface OptionalDataVisitor<E> extends NullDataVisitor<Optional<E>> {
@@ -59,6 +63,21 @@ public interface OptionalDataVisitor<E> extends NullDataVisitor<Optional<E>> {
 
     @Override
     default Optional<E> visit(final Client client) {
+        return Optional.empty();
+    }
+
+    @Override
+    default Optional<E> visit(final TraconBoundary traconBoundary) {
+        return Optional.empty();
+    }
+
+    @Override
+    default Optional<E> visit(final VgPosition vatglassesPosition) {
+        return Optional.empty();
+    }
+
+    @Override
+    default Optional<E> visit(final Event event) {
         return Optional.empty();
     }
 }

@@ -180,6 +180,22 @@ class VatglassesDataTest {
         Assertions.assertEquals(Set.of("tst/ANY"), keys(station("ANY_1_FSS", "123.450")));
     }
 
+    @Test
+    void stationsWithoutFrequencyOnlyMatchUnambiguousPositions() {
+        Assertions.assertEquals(Set.of("xx/FAR"), keys(station("FAR_CTR", null)));
+        Assertions.assertEquals(Set.of("tst/LOW"), keys(station("TS_N_CTR", "")));
+        // Two positions share the prefix and type
+        Assertions.assertEquals(Set.of(), keys(station("TST_CTR", null)));
+    }
+
+    @Test
+    void fixedColourReplacesThePositionColours() {
+        final List<ActiveSubSector> subSectors = data.resolve(List.of(station("TST_CTR", "132.605")), WEDNESDAY_NOON, Color.GRAY);
+
+        Assertions.assertFalse(subSectors.isEmpty());
+        Assertions.assertTrue(subSectors.stream().allMatch(e -> e.getColour().equals(Color.GRAY)));
+    }
+
     private Set<String> keys(final AtcStation... stations) {
         return data.onlinePositions(Arrays.asList(stations)).keySet().stream().map(VgPosition::getKey).collect(Collectors.toSet());
     }

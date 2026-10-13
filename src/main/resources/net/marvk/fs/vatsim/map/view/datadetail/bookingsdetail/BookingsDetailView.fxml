@@ -1,0 +1,17 @@
+<?import javafx.scene.layout.*?>
+<?import net.marvk.fs.vatsim.map.view.datadetail.DataDetailPane?>
+<DataDetailPane fx:id="root" headerText="Bookings" styleClass="container" xmlns="http://javafx.com/javafx/11.0.1"
+                xmlns:fx="http://javafx.com/fxml/1"
+                fx:controller="net.marvk.fs.vatsim.map.view.datadetail.bookingsdetail.BookingsDetailView">
+    <contentNode>
+        <GridPane fx:id="bookingsGrid" hgap="10">
+            <columnConstraints>
+                <ColumnConstraints hgrow="NEVER"/>
+                <ColumnConstraints hgrow="NEVER"/>
+                <ColumnConstraints hgrow="NEVER"/>
+                <ColumnConstraints hgrow="ALWAYS" minWidth="0.0"/>
+                <ColumnConstraints hgrow="NEVER"/>
+            </columnConstraints>
+        </GridPane>
+    </contentNode>
+</DataDetailPane>

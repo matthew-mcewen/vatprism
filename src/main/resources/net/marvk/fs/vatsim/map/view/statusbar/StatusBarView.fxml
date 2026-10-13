@@ -20,7 +20,13 @@
                 <HBox spacing="15.0">
                     <children>
                         <Label fx:id="playersOnline" text="PlayersOnline"/>
-                        <Label fx:id="vatglasses"/>
+                        <HBox spacing="5.0">
+                            <children>
+                                <Label fx:id="vatglasses"/>
+                                <Label fx:id="vatglassesSetCid" styleClass="hyperlink-label" text="Set CID"
+                                       onMouseClicked="#openVatglassesSettings"/>
+                            </children>
+                        </HBox>
                     </children>
                 </HBox>
                 <Label fx:id="information" text="Label" GridPane.columnIndex="1"/>

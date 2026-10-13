@@ -1,13 +1,18 @@
 package net.marvk.fs.vatsim.map.data.airspace;
 
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.scene.paint.Color;
+import net.marvk.fs.vatsim.map.data.Controller;
+import net.marvk.fs.vatsim.map.data.Data;
+import net.marvk.fs.vatsim.map.data.DataVisitor;
 
 import java.util.List;
 
 /**
  * A controller position from the VATGlasses data.
  */
-public class VgPosition {
+public class VgPosition implements Data {
     static final int ANY_FREQUENCY = 0;
 
     private final String key;
@@ -16,6 +21,8 @@ public class VgPosition {
     private final String type;
     private final int frequencyKhz;
     private final List<ColourRule> colours;
+
+    private final ObservableList<Controller> controllers = FXCollections.observableArrayList();
 
     VgPosition(final String key, final String callsign, final List<String> prefixes, final String type, final int frequencyKhz, final List<ColourRule> colours) {
         this.key = key;
@@ -38,6 +45,29 @@ public class VgPosition {
      */
     public String getCallsign() {
         return callsign;
+    }
+
+    /**
+     * @return the online controllers working this position
+     */
+    public ObservableList<Controller> getControllers() {
+        return controllers;
+    }
+
+    /**
+     * @return the logon callsign of the controller working this position, the voice callsign if nobody is
+     */
+    public String getDisplayName() {
+        if (!controllers.isEmpty()) {
+            return controllers.get(0).getCallsign();
+        }
+
+        return callsign == null ? key : callsign;
+    }
+
+    @Override
+    public <R> R visit(final DataVisitor<R> visitor) {
+        return visitor.visit(this);
     }
 
     List<String> getPrefixes() {

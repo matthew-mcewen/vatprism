@@ -3,6 +3,7 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
+<?import javafx.scene.shape.SVGPath?>
 <?import org.kordamp.ikonli.javafx.*?>
 <HBox alignment="CENTER_LEFT" fx:id="container" spacing="1" stylesheets="@toolbar.css" styleClass="container"
       xmlns="http://javafx.com/javafx/11.0.1"
@@ -132,6 +133,30 @@
             </tooltip>
             <graphic>
                 <FontIcon iconLiteral="vatprism-uir" iconSize="24"/>
+            </graphic>
+        </ToggleButton>
+        <Separator orientation="VERTICAL"/>
+        <ToggleButton fx:id="vatglasses" userData="vatglasses.enabled" styleClass="icon-button" text="VG"
+                      mnemonicParsing="false">
+            <tooltip>
+                <Tooltip text="Display VatGlasses Airspace - Set CID in Settings"/>
+            </tooltip>
+        </ToggleButton>
+        <ToggleButton fx:id="events" userData="events.enabled" styleClass="icon-button" mnemonicParsing="false">
+            <tooltip>
+                <Tooltip text="Display events"/>
+            </tooltip>
+            <graphic>
+                <!--A pennon on a pole, tilted 30 degrees to the right-->
+                <SVGPath styleClass="pennon-icon" content="M0 0H2V0.8L13 4.5L2 8.2V17H0Z" rotate="30"/>
+            </graphic>
+        </ToggleButton>
+        <ToggleButton fx:id="bookings" userData="bookings.enabled" styleClass="icon-button" mnemonicParsing="false">
+            <tooltip>
+                <Tooltip text="Display ATC bookings"/>
+            </tooltip>
+            <graphic>
+                <FontIcon iconLiteral="oct-calendar-16" iconSize="24"/>
             </graphic>
         </ToggleButton>
         <!--This toggle isn't really needed, I think this might only be used for debugging purposes and doesn't warrent quick access-->

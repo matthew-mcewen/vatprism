@@ -31,6 +31,7 @@ public class StatusBarViewModel implements ViewModel {
 
     private final VatglassesState vatglassesState;
     private final ReadOnlyStringWrapper vatglasses = new ReadOnlyStringWrapper();
+    private final ReadOnlyBooleanWrapper vatglassesCidMissing = new ReadOnlyBooleanWrapper();
 
     @InjectScope
     private StatusScope statusScope;
@@ -53,10 +54,24 @@ public class StatusBarViewModel implements ViewModel {
                 vatglassesState.levelProperty(),
                 vatglassesState.trackedPilotProperty()
         ));
+        vatglassesCidMissing.bind(Bindings.createBooleanBinding(
+                this::isVatglassesCidMissing,
+                vatglassesState.enabledProperty(),
+                vatglassesState.cidProperty(),
+                vatglassesState.overridePilotProperty()
+        ));
         information.bind(Bindings.createStringBinding(
                 () -> highlightedData.stream().map(icaoVisitor::visit).collect(Collectors.joining(", ")),
                 highlightedData
         ));
+    }
+
+    private boolean isVatglassesCidMissing() {
+        final String cid = vatglassesState.cidProperty().get();
+
+        return vatglassesState.enabledProperty().get()
+                && (cid == null || cid.isBlank())
+                && vatglassesState.getOverridePilot() == null;
     }
 
     private String vatglassesString() {
@@ -83,6 +98,10 @@ public class StatusBarViewModel implements ViewModel {
 
     public ReadOnlyObjectProperty<PlayerStats> playerStatsProperty() {
         return playerStats.getReadOnlyProperty();
+    }
+
+    public ReadOnlyBooleanProperty vatglassesCidMissingProperty() {
+        return vatglassesCidMissing.getReadOnlyProperty();
     }
 
     public ReadOnlyStringProperty vatglassesProperty() {

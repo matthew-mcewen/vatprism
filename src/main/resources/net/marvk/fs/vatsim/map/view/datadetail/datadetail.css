@@ -80,3 +80,36 @@
 .detail-view-container {
     -fx-effect: -vatsim-dropshadow;
 }
+
+.event-description, .event-description > .viewport {
+    -fx-background-color: transparent;
+}
+
+.event-description {
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+}
+
+.event-action {
+    -fx-background-color: -vatsim-background-color-light;
+    -fx-background-insets: 0;
+    -fx-background-radius: 0;
+    -fx-cursor: hand;
+}
+
+.event-action:hover {
+    -fx-background-color: -vatsim-background-color-very-very-light;
+}
+
+.event-action:selected {
+    -fx-background-color: -vatsim-background-color-very-very-very-light;
+}
+
+.event-action .ikonli-font-icon {
+    -fx-icon-color: -vatsim-text-color;
+}
+
+.event-action:selected, .event-action:selected .ikonli-font-icon {
+    -fx-text-fill: -vatsim-text-color-light;
+    -fx-icon-color: -vatsim-text-color-light;
+}

@@ -16,13 +16,20 @@ import javafx.scene.paint.Color;
 import javafx.util.Duration;
 import lombok.extern.log4j.Log4j2;
 import net.marvk.fs.vatsim.map.data.*;
+import net.marvk.fs.vatsim.map.data.airspace.ActiveSubSector;
 import net.marvk.fs.vatsim.map.data.airspace.AirspaceService;
+import net.marvk.fs.vatsim.map.data.airspace.TraconBoundary;
+import net.marvk.fs.vatsim.map.data.airspace.VgPosition;
+import net.marvk.fs.vatsim.map.data.booking.BookingService;
+import net.marvk.fs.vatsim.map.data.event.Event;
+import net.marvk.fs.vatsim.map.data.event.EventService;
 import net.marvk.fs.vatsim.map.view.Notifications;
 import net.marvk.fs.vatsim.map.view.SettingsScope;
 import net.marvk.fs.vatsim.map.view.StatusScope;
 import net.marvk.fs.vatsim.map.view.painter.*;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -33,6 +40,8 @@ import java.util.stream.Stream;
 @Log4j2
 public class MapViewModel implements ViewModel {
     private static final int SELECTION_DISTANCE = 8;
+    private static final double MIN_EVENT_VIEWPORT_SIZE = 4;
+    private static final Color BOOKED_COLOR = Color.web("606060");
     private final DoubleProperty scale = new SimpleDoubleProperty(1);
     private final ReadOnlyObjectWrapper<Point2D> worldCenter = new ReadOnlyObjectWrapper<>(new Point2D(0, 0));
     private final DoubleProperty viewWidth = new SimpleDoubleProperty();
@@ -67,6 +76,8 @@ public class MapViewModel implements ViewModel {
     private final Preferences preferences;
     private final FilterRepository filterRepository;
     private final AirspaceService airspaceService;
+    private final EventService eventService;
+    private final BookingService bookingService;
 
     private ObservableList<PainterExecutor<?>> painterExecutors;
 
@@ -92,6 +103,8 @@ public class MapViewModel implements ViewModel {
             final Preferences preferences,
             final FilterRepository filterRepository,
             final AirspaceService airspaceService,
+            final EventService eventService,
+            final BookingService bookingService,
             @Named("world") final PolygonRepository world,
             @Named("lakes") final PolygonRepository lakes
     ) {
@@ -104,6 +117,8 @@ public class MapViewModel implements ViewModel {
         this.preferences = preferences;
         this.filterRepository = filterRepository;
         this.airspaceService = airspaceService;
+        this.eventService = eventService;
+        this.bookingService = bookingService;
 
         this.scrollSpeed.bind(preferences.doubleProperty("general.scroll_speed"));
 
@@ -217,20 +232,48 @@ public class MapViewModel implements ViewModel {
                 PainterExecutor.of("Scale", new ScalePainter(mapVariables)),
                 PainterExecutor.ofCollection("Inactive Firs", new InactiveFirbPainter(mapVariables), this::flightInformationRegionBoundaries, this::isNotSelected),
                 PainterExecutor.ofCollection("Inactive Uirs", new InactiveUirPainter(mapVariables), upperInformationRegionRepository::list, this::isNotSelected),
+                PainterExecutor.ofCollection("Booked Uirs", new UirPainter(mapVariables, BOOKED_COLOR, false), bookingService::bookedUirs, this::isNotSelected),
+                PainterExecutor.ofCollection("Booked Firs", new FirbPainter(mapVariables, BOOKED_COLOR, 1, true, true, true), bookingService::bookedFirbs, this::isNotSelected),
                 PainterExecutor.ofCollection("Active Uirs", new ActiveUirPainter(mapVariables), upperInformationRegionRepository::list, this::isNotSelected),
                 PainterExecutor.ofCollection("Active Firs", new ActiveFirbPainter(mapVariables), this::flightInformationRegionBoundaries, this::isNotSelected),
-                PainterExecutor.ofCollection("Tracon", new TraconPainter(mapVariables), airspaceService::activeTracons),
+                PainterExecutor.ofCollection("Booked Tracon", new TraconPainter(mapVariables, BOOKED_COLOR, 1), bookingService::bookedTracons, this::isNotSelected),
+                PainterExecutor.of("Booked Vatglasses", new VatglassesPainter(mapVariables, bookingService::bookedSubSectors)),
+                PainterExecutor.ofCollection("Tracon", new TraconPainter(mapVariables), airspaceService::activeTracons, this::isNotSelected),
                 PainterExecutor.of("Vatglasses", new VatglassesPainter(mapVariables, airspaceService::visibleSubSectors)),
                 PainterExecutor.ofItem("Connections", new ConnectionsPainter(mapVariables), this.selectedItemProperty()::get),
                 PainterExecutor.ofCollection("Pilots", new PilotPainter(mapVariables), this::pilots, this::isNotSelected),
                 PainterExecutor.ofCollection("Filters", new FilterPainter(mapVariables, filterRepository.list()), this::pilots, this::isNotSelected),
-                PainterExecutor.ofCollection("Airports", new AirportPainter(mapVariables), this::airports, this::isNotSelected),
-                PainterExecutor.ofCollection("Search Items", new SelectedPainter(mapVariables, Color.DEEPSKYBLUE, true), statusScope::getSearchedData, this::isNotSelected),
-                PainterExecutor.ofItem("Selected Item", new SelectedPainter(mapVariables), selectedItem::get),
+                PainterExecutor.ofCollection("Airports", new AirportPainter(mapVariables, bookingService), this::airports, this::isNotSelected),
+                PainterExecutor.ofCollection("Events", new EventPainter(mapVariables, preferences.colorProperty("airports.airport_color")::get), eventService::visibleEventAirports),
+                PainterExecutor.ofCollection("Search Items", new SelectedPainter(mapVariables, this::subSectors, Color.DEEPSKYBLUE, true), statusScope::getSearchedData, this::isNotSelected),
+                PainterExecutor.ofItem("Selected Item", new SelectedPainter(mapVariables, this::subSectors), selectedItem::get),
                 PainterExecutor.ofItem("Selection Shape", new SelectionShapePainter(mapVariables), selectionShape::get),
                 PainterExecutor.ofItem("Distance Measure", new DistanceMeasurePainter(mapVariables), distanceMeasureWorld::get),
                 PainterExecutor.ofItem("Metrics", new FrameMetricsPainter(mapVariables), () -> frameMetrics)
         );
+    }
+
+    /**
+     * @return the Vatglasses sub sectors on the map, the controlled ones followed by the booked ones
+     */
+    private ActiveSubSector[] subSectors() {
+        final ActiveSubSector[] visible = airspaceService.visibleSubSectors();
+        final ActiveSubSector[] booked = bookingService.bookedSubSectors();
+
+        if (booked.length == 0) {
+            return visible;
+        }
+
+        final ActiveSubSector[] result = Arrays.copyOf(visible, visible.length + booked.length);
+        System.arraycopy(booked, 0, result, visible.length, booked.length);
+
+        return result;
+    }
+
+    private static double area(final ActiveSubSector subSector) {
+        final Rectangle2D boundary = subSector.getSubSector().getPolygon().boundary();
+
+        return boundary.getWidth() * boundary.getHeight();
     }
 
     private boolean isNotSelected(final Data e) {
@@ -386,6 +429,8 @@ public class MapViewModel implements ViewModel {
         public void set() {
             setFirbs();
             setUirs();
+            setTracons();
+            setVatglassesPositions();
             setAirports();
             setPilots();
         }
@@ -410,16 +455,22 @@ public class MapViewModel implements ViewModel {
                 return tautology;
             }
 
+            // Booked FIRs are painted by their own painter, no matter the FIR settings
+            final Predicate<FlightInformationRegionBoundary> isBooked = this::isBooked;
+
             if (paintActiveFirs) {
-                return FlightInformationRegionBoundary::hasFirControllers;
+                return isBooked.or(FlightInformationRegionBoundary::hasFirControllers);
             }
 
             if (paintInactiveFirs) {
-                return e -> !e.hasFirControllers();
+                return isBooked.or(e -> !e.hasFirControllers());
             }
 
-            //noinspection unchecked
-            return contradiction;
+            return isBooked;
+        }
+
+        private boolean isBooked(final Data data) {
+            return bookingService.hasBookings(data);
         }
 
         private Predicate<UpperInformationRegion> uirPredicate() {
@@ -438,16 +489,17 @@ public class MapViewModel implements ViewModel {
                 return tautology;
             }
 
+            final Predicate<UpperInformationRegion> isBooked = this::isBooked;
+
             if (paintActiveUirs) {
-                return uir -> !uir.getControllers().isEmpty();
+                return isBooked.or(uir -> !uir.getControllers().isEmpty());
             }
 
             if (paintInactiveUirs) {
-                return uir -> uir.getControllers().isEmpty();
+                return isBooked.or(uir -> uir.getControllers().isEmpty());
             }
 
-            //noinspection unchecked
-            return contradiction;
+            return isBooked;
         }
 
         private Predicate<Airport> airportPredicate() {
@@ -459,6 +511,8 @@ public class MapViewModel implements ViewModel {
             }
 
             final boolean paintAirports = isProperty("airports.enabled");
+            // Airports with an event are painted by the event painter, no matter the airport settings
+            final Predicate<Airport> hasEvents = eventService::hasEvents;
 
             if (paintAirports) {
                 final boolean paintUncontrolledAirports = isProperty("airports.paint_uncontrolled_airports");
@@ -470,14 +524,13 @@ public class MapViewModel implements ViewModel {
                 }
 
                 if (paintUncontrolledAirportsWithArrivalsOrDepartures) {
-                    return airport -> airport.hasControllers() || airport.hasArrivals() || airport.hasDepartures();
+                    return hasEvents.or(airport -> airport.hasControllers() || isBooked(airport) || airport.hasArrivals() || airport.hasDepartures());
                 }
 
-                return Airport::hasControllers;
+                return hasEvents.or(airport -> airport.hasControllers() || isBooked(airport));
             }
 
-            //noinspection unchecked
-            return contradiction;
+            return hasEvents;
         }
 
         private Predicate<Pilot> pilotPredicate() {
@@ -527,6 +580,35 @@ public class MapViewModel implements ViewModel {
                     .collect(Collectors.toList());
 
             contextMenu.getUirs().getItems().setAll(uirs);
+        }
+
+        private void setTracons() {
+            final Point2D position = mouseWorldPosition.get();
+            final double maxDistance = selectionDistance();
+
+            final List<TraconBoundary> tracons = Stream
+                    .concat(airspaceService.activeTracons().stream(), bookingService.bookedTracons().stream())
+                    .filter(e -> e.distance(position) <= maxDistance)
+                    .sorted(java.util.Comparator.comparingDouble(TraconBoundary::area))
+                    .collect(Collectors.toList());
+
+            contextMenu.getTracons().getItems().setAll(tracons);
+        }
+
+        private void setVatglassesPositions() {
+            final Point2D position = mouseWorldPosition.get();
+            final double maxDistance = selectionDistance();
+
+            // The owners of the smallest sectors come first, those are the most specific
+            final List<VgPosition> positions = Arrays
+                    .stream(subSectors())
+                    .filter(e -> e.getSubSector().distance(position) <= maxDistance)
+                    .sorted(java.util.Comparator.comparingDouble(MapViewModel::area))
+                    .map(ActiveSubSector::getOwner)
+                    .distinct()
+                    .collect(Collectors.toList());
+
+            contextMenu.getVatglassesPositions().getItems().setAll(positions);
         }
 
         private void setAirports() {
@@ -580,8 +662,65 @@ public class MapViewModel implements ViewModel {
         }
 
         @Override
+        public Optional<Viewport> visit(final TraconBoundary traconBoundary) {
+            return fromRect(traconBoundary.getBounds());
+        }
+
+        @Override
+        public Optional<Viewport> visit(final VgPosition vatglassesPosition) {
+            final List<Polygon> polygons = Arrays
+                    .stream(subSectors())
+                    .filter(e -> e.getOwner() == vatglassesPosition)
+                    .map(e -> e.getSubSector().getPolygon())
+                    .collect(Collectors.toList());
+
+            if (polygons.isEmpty()) {
+                return Optional.empty();
+            }
+
+            return fromRect(net.marvk.fs.vatsim.map.data.airspace.AirspacePolygons.bounds(polygons));
+        }
+
+        @Override
         public Optional<Viewport> visit(final UpperInformationRegion upperInformationRegion) {
             return fromRect(upperInformationRegion.getBounds());
+        }
+
+        @Override
+        public Optional<Viewport> visit(final Event event) {
+            final List<Airport> eventAirports = event.getAirports();
+
+            if (eventAirports.isEmpty()) {
+                return Optional.empty();
+            }
+
+            if (eventAirports.size() == 1) {
+                return visit(eventAirports.get(0));
+            }
+
+            double minX = Double.MAX_VALUE;
+            double minY = Double.MAX_VALUE;
+            double maxX = -Double.MAX_VALUE;
+            double maxY = -Double.MAX_VALUE;
+
+            for (final Airport airport : eventAirports) {
+                final Point2D position = airport.getPosition();
+                minX = Math.min(minX, position.getX());
+                minY = Math.min(minY, position.getY());
+                maxX = Math.max(maxX, position.getX());
+                maxY = Math.max(maxY, position.getY());
+            }
+
+            // Airports close to each other would otherwise zoom in further than a single airport does
+            final double width = Math.max(maxX - minX, MIN_EVENT_VIEWPORT_SIZE);
+            final double height = Math.max(maxY - minY, MIN_EVENT_VIEWPORT_SIZE);
+
+            return fromRect(new Rectangle2D(
+                    (minX + maxX) / 2.0 - width / 2.0,
+                    (minY + maxY) / 2.0 - height / 2.0,
+                    width,
+                    height
+            ));
         }
 
         private Optional<Viewport> fromRect(final Rectangle2D boundary) {

@@ -6,11 +6,19 @@ import com.dlsc.formsfx.model.validators.RegexValidator;
 import com.dlsc.preferencesfx.PreferencesFx;
 import com.dlsc.preferencesfx.model.Category;
 import com.dlsc.preferencesfx.model.Group;
+import com.dlsc.preferencesfx.model.PreferencesFxModel;
 import com.dlsc.preferencesfx.model.Setting;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
 import de.saxsys.mvvmfx.FluentViewLoader;
+import javafx.application.Platform;
+import javafx.beans.binding.Bindings;
+import javafx.geometry.Pos;
+import javafx.scene.Node;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Region;
+import org.controlsfx.control.ToggleSwitch;
 import javafx.beans.property.*;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
@@ -23,8 +31,10 @@ import lombok.SneakyThrows;
 import lombok.extern.log4j.Log4j2;
 import net.marvk.fs.vatsim.map.App;
 import net.marvk.fs.vatsim.map.data.Preferences;
-import net.marvk.fs.vatsim.map.data.airspace.AirspaceService;
 import net.marvk.fs.vatsim.map.data.airspace.VatglassesState;
+import net.marvk.fs.vatsim.map.data.booking.BookingService;
+import net.marvk.fs.vatsim.map.data.event.EventReminderService;
+import net.marvk.fs.vatsim.map.data.event.EventService;
 import net.marvk.fs.vatsim.map.view.Notifications;
 import net.marvk.fs.vatsim.map.view.SettingsScope;
 import net.marvk.fs.vatsim.map.view.painter.MetaPainter;
@@ -51,14 +61,29 @@ public class PreferencesView {
     private final SettingsScope settingsScope;
     private final Path configDirectory;
     private final VatglassesState vatglassesState;
+    private final EventService eventService;
+    private final EventReminderService eventReminderService;
+    private final BookingService bookingService;
     private PreferencesFx preferencesFx;
+    private Category vatglassesCategory;
 
     @Inject
-    public PreferencesView(final Preferences preferences, final SettingsScope settingsScope, @Named("userConfigDir") final Path configDirectory, final VatglassesState vatglassesState) {
+    public PreferencesView(
+            final Preferences preferences,
+            final SettingsScope settingsScope,
+            @Named("userConfigDir") final Path configDirectory,
+            final VatglassesState vatglassesState,
+            final EventService eventService,
+            final EventReminderService eventReminderService,
+            final BookingService bookingService
+    ) {
         this.preferences = preferences;
         this.settingsScope = settingsScope;
         this.configDirectory = configDirectory;
         this.vatglassesState = vatglassesState;
+        this.eventService = eventService;
+        this.eventReminderService = eventReminderService;
+        this.bookingService = bookingService;
         this.settingsScope.getPainters()
                           .addListener((ListChangeListener<PainterExecutor<?>>) c -> getPreferencesDialog());
 
@@ -66,6 +91,34 @@ public class PreferencesView {
 
     public void show() {
         getPreferencesDialog().show(true);
+    }
+
+    /**
+     * Shows the preferences with the Vatglasses category selected.
+     */
+    public void showVatglasses() {
+        final PreferencesFx dialog = getPreferencesDialog();
+
+        selectCategory(dialog, vatglassesCategory);
+        // The dialog may restore its previously selected category while it opens
+        Platform.runLater(() -> selectCategory(dialog, vatglassesCategory));
+
+        dialog.show(true);
+    }
+
+    private static void selectCategory(final PreferencesFx dialog, final Category category) {
+        if (category == null) {
+            return;
+        }
+
+        try {
+            // PreferencesFx offers no public way to select a category
+            final Field field = PreferencesFx.class.getDeclaredField("preferencesFxModel");
+            field.setAccessible(true);
+            ((PreferencesFxModel) field.get(dialog)).setDisplayedCategory(category);
+        } catch (final ReflectiveOperationException | RuntimeException e) {
+            log.warn("Failed to select preferences category", e);
+        }
     }
 
     private PreferencesFx getPreferencesDialog() {
@@ -85,6 +138,8 @@ public class PreferencesView {
                 ui(),
                 contextMenu(),
                 vatglasses(),
+                events(),
+                bookings(),
                 painters()
         ).saveSettings(false);
     }
@@ -104,27 +159,97 @@ public class PreferencesView {
     }
 
     private Category vatglasses() {
-        return Category.of(
+        vatglassesCategory = Category.of(
                 "Vatglasses",
                 Group.of(
                         Setting.of("Show Vatglasses sectors", vatglassesState.enabledProperty()),
-                        Setting.of(infoLabel("Shows the airspace of online controllers at a single flight level", INFO_STYLE)),
+                        Setting.of(infoLabel("Shows the airspace of online controllers at a single flight level. Replaces the TRACON boundaries", INFO_STYLE)),
                         Setting.of("VATSIM CID", vatglassesState.cidProperty())
                                .validate(RegexValidator.forPattern("\\s*\\d*\\s*", "Not a CID")),
                         Setting.of("Automatic mode", vatglassesState.automaticProperty()),
                         Setting.of(infoLabel("Follows the altitude of your flight while you are connected with the CID above", INFO_STYLE)),
+                        Setting.of(vatglassesAutoSwitch()),
+                        Setting.of(infoLabel("Shows the sectors while you are connected with the CID above and hides them when you disconnect. Requires a CID", INFO_STYLE)),
                         Setting.of("Manual flight level", vatglassesState.manualLevelProperty(), VatglassesState.MIN_LEVEL, VatglassesState.MAX_LEVEL),
                         Setting.of(infoLabel("Used while no flight is followed. To follow any other flight, press VG in its details", INFO_STYLE))
                 ),
                 Group.of(
                         "TRACON Boundaries",
-                        Setting.of("Show approach and departure boundaries", preferences.booleanProperty(AirspaceService.TRACON_ENABLED_KEY, true))
+                        Setting.of("Show approach and departure boundaries", vatglassesState.traconEnabledProperty()),
+                        Setting.of(infoLabel("The simpler alternative to Vatglasses sectors, enabling one disables the other. Returns when Vatglasses is disabled, unless disabled here", INFO_STYLE))
                 ),
                 Group.of(
                         "Data",
                         Setting.of(infoLabel("Sectors by VATGlasses, licensed under CC BY-NC-SA 4.0", INFO_STYLE)),
                         Setting.of(infoLabel("Boundaries by the SimAware TRACON Project, licensed under CC BY-SA 4.0", INFO_STYLE)),
                         Setting.of(infoLabel("Downloaded from GitHub when enabled and checked for updates once a day", INFO_STYLE))
+                )
+        );
+
+        return vatglassesCategory;
+    }
+
+    /**
+     * PreferencesFx can not disable single settings, so this one is built by hand.
+     */
+    private Node vatglassesAutoSwitch() {
+        final ToggleSwitch toggle = new ToggleSwitch();
+        toggle.selectedProperty().bindBidirectional(vatglassesState.autoSwitchProperty());
+
+        final Label label = new Label("Automatically switch to VG when my CID is online");
+        label.setMinWidth(Region.USE_PREF_SIZE);
+
+        final HBox result = new HBox(10, label, toggle);
+        result.setAlignment(Pos.CENTER_LEFT);
+        result.disableProperty().bind(Bindings.createBooleanBinding(
+                () -> !VatglassesState.isValidCid(vatglassesState.cidProperty().get()),
+                vatglassesState.cidProperty()
+        ));
+
+        return result;
+    }
+
+    private Category events() {
+        return Category.of(
+                "Events",
+                Group.of(
+                        Setting.of("Show events", eventService.enabledProperty()),
+                        Setting.of(infoLabel("Marks airports with an upcoming event with a pennon and lists the events in the airport details", INFO_STYLE)),
+                        Setting.of("Maximum hours ahead", eventService.horizonHoursProperty())
+                               .validate(IntegerRangeValidator.between(EventService.MIN_HORIZON_HOURS, EventService.MAX_HORIZON_HOURS, "Not in range")),
+                        Setting.of(infoLabel("Events which start later than this are not shown", INFO_STYLE))
+                ),
+                Group.of(
+                        "Types",
+                        Setting.of("Events", eventService.showEventsProperty()),
+                        Setting.of("Controller examinations (CPTs)", eventService.showExamsProperty()),
+                        Setting.of("VASOPS events", eventService.showVasopsProperty())
+                ),
+                Group.of(
+                        "Reminders",
+                        Setting.of("Minutes before the start", eventReminderService.reminderMinutesProperty())
+                               .validate(IntegerRangeValidator.between(EventReminderService.MIN_REMINDER_MINUTES, EventReminderService.MAX_REMINDER_MINUTES, "Not in range")),
+                        Setting.of(infoLabel("Reminders are set in the event details and are only sent while VATprism is running", INFO_STYLE))
+                ),
+                Group.of(
+                        "Data",
+                        Setting.of(infoLabel("Events by the VATSIM Events API, loaded at most once per hour while events are shown", INFO_STYLE))
+                )
+        );
+    }
+
+    private Category bookings() {
+        return Category.of(
+                "Bookings",
+                Group.of(
+                        Setting.of("Show ATC bookings", bookingService.enabledProperty()),
+                        Setting.of(infoLabel("Paints booked positions which are not online in grey and lists the bookings in the airport and airspace details", INFO_STYLE)),
+                        Setting.of("Maximum hours ahead", bookingService.horizonHoursProperty(), BookingService.MIN_HORIZON_HOURS, BookingService.MAX_HORIZON_HOURS),
+                        Setting.of(infoLabel("Bookings which start later than this are not shown, up to 7 days (168 hours)", INFO_STYLE))
+                ),
+                Group.of(
+                        "Data",
+                        Setting.of(infoLabel("Bookings by VATSIM ATC Bookings, loaded at most every 15 minutes while bookings are shown", INFO_STYLE))
                 )
         );
     }

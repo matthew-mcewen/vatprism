@@ -1,5 +1,9 @@
 package net.marvk.fs.vatsim.map.data;
 
+import net.marvk.fs.vatsim.map.data.airspace.TraconBoundary;
+import net.marvk.fs.vatsim.map.data.airspace.VgPosition;
+import net.marvk.fs.vatsim.map.data.event.Event;
+
 public interface NullDataVisitor<E> extends DataVisitor<E> {
     @Override
     default E visit(final Data data) {
@@ -57,6 +61,21 @@ public interface NullDataVisitor<E> extends DataVisitor<E> {
 
     @Override
     default E visit(final Client client) {
+        return null;
+    }
+
+    @Override
+    default E visit(final TraconBoundary traconBoundary) {
+        return null;
+    }
+
+    @Override
+    default E visit(final VgPosition vatglassesPosition) {
+        return null;
+    }
+
+    @Override
+    default E visit(final Event event) {
         return null;
     }
 }

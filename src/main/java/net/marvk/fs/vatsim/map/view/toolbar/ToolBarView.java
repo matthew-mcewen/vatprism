@@ -54,6 +54,12 @@ public class ToolBarView implements FxmlView<ToolBarViewModel> {
     @FXML
     private ToggleButton uirsInactive;
     @FXML
+    private ToggleButton vatglasses;
+    @FXML
+    private ToggleButton events;
+    @FXML
+    private ToggleButton bookings;
+    @FXML
     private ToggleButton filters;
     @FXML
     private ToggleButton connections;
@@ -71,6 +77,9 @@ public class ToolBarView implements FxmlView<ToolBarViewModel> {
                 firs,
                 firsInactive,
                 uirs,
+                vatglasses,
+                events,
+                bookings,
 //                uirsInactive,
                 filters,
                 connections,

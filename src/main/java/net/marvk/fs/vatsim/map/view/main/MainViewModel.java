@@ -18,6 +18,9 @@ import javafx.scene.paint.Color;
 import lombok.extern.log4j.Log4j2;
 import net.marvk.fs.vatsim.map.data.*;
 import net.marvk.fs.vatsim.map.data.airspace.AirspaceService;
+import net.marvk.fs.vatsim.map.data.booking.BookingService;
+import net.marvk.fs.vatsim.map.data.event.EventReminderService;
+import net.marvk.fs.vatsim.map.data.event.EventService;
 import net.marvk.fs.vatsim.map.view.Notifications;
 import net.marvk.fs.vatsim.map.view.SettingsScope;
 import net.marvk.fs.vatsim.map.view.StatusScope;
@@ -42,6 +45,12 @@ public class MainViewModel implements ViewModel {
 
     private final AirspaceService airspaceService;
 
+    private final EventService eventService;
+
+    private final EventReminderService eventReminderService;
+
+    private final BookingService bookingService;
+
     private final ReloadService clientReloadService;
 
     private final ReadOnlyBooleanWrapper onboarding = new ReadOnlyBooleanWrapper();
@@ -53,12 +62,18 @@ public class MainViewModel implements ViewModel {
     public MainViewModel(
             final ClientRepository clientRepository,
             final AirspaceService airspaceService,
+            final EventService eventService,
+            final EventReminderService eventReminderService,
+            final BookingService bookingService,
             final Preferences preferences,
             final VersionProvider versionProvider,
             @Named("vatsimApiRefreshRate") final Duration refreshRate
     ) {
         this.preferences = preferences;
         this.airspaceService = airspaceService;
+        this.eventService = eventService;
+        this.eventReminderService = eventReminderService;
+        this.bookingService = bookingService;
 
         Notifications.RELOAD_CLIENTS.subscribe(this::reloadClients);
 
@@ -77,6 +92,8 @@ public class MainViewModel implements ViewModel {
 
     private void clientReloadCompleted() {
         airspaceService.refresh();
+        bookingService.refresh();
+        eventService.refresh();
         Notifications.REPAINT.publish();
         Notifications.CLIENTS_RELOADED.publish();
     }
@@ -86,7 +103,14 @@ public class MainViewModel implements ViewModel {
     }
 
     public void initialize() {
-        airspaceService.initialize(Notifications.REPAINT::publish);
+        // Which booked positions are painted depends on the airspace which is loaded and active
+        airspaceService.initialize(() -> {
+            bookingService.refresh();
+            Notifications.REPAINT.publish();
+        });
+        bookingService.initialize(Notifications.REPAINT::publish);
+        eventService.initialize(Notifications.REPAINT::publish);
+        eventReminderService.initialize();
 
         toolbarScope.autoReloadProperty().addListener((observable, oldValue, newValue) -> {
             if (newValue) {

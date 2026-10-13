@@ -26,6 +26,7 @@
         "date_line.stroke_color": "0x737373ff",
         "distance_measure.color": "0xa05260ff",
         "distance_measure.text_color": "0x481720ff",
+        "events.pennon_color": "0x7f0000ff",
         "inactive_firs.fir.fill_color": "0x3b341f03",
         "inactive_firs.fir.label_color": "0xa0a0b8ff",
         "inactive_firs.fir.stroke_color": "0xa0a0b8ff",

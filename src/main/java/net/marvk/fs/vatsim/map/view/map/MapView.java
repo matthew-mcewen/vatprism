@@ -31,6 +31,8 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.text.Font;
 import lombok.extern.log4j.Log4j2;
 import net.marvk.fs.vatsim.map.data.*;
+import net.marvk.fs.vatsim.map.data.airspace.TraconBoundary;
+import net.marvk.fs.vatsim.map.data.airspace.VgPosition;
 import net.marvk.fs.vatsim.map.view.datadetail.DataDetailView;
 import net.marvk.fs.vatsim.map.view.datadetail.DataDetailViewModel;
 import net.marvk.fs.vatsim.map.view.painter.PainterExecutor;
@@ -487,6 +489,16 @@ public class MapView implements FxmlView<MapViewModel> {
             @Override
             public String visit(final UpperInformationRegion upperInformationRegion) {
                 return upperInformationRegion.getIcao();
+            }
+
+            @Override
+            public String visit(final TraconBoundary traconBoundary) {
+                return traconBoundary.getId();
+            }
+
+            @Override
+            public String visit(final VgPosition vatglassesPosition) {
+                return vatglassesPosition.getDisplayName();
             }
         }
 

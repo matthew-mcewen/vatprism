@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import net.marvk.fs.vatsim.map.view.datadetail.DataDetailPane?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
+<?import java.lang.*?>
+<VBox styleClass="container" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="net.marvk.fs.vatsim.map.view.datadetail.eventdetail.EventDetailView">
+    <fx:define>
+        <Double fx:id="descriptionColumn" fx:value="80"/>
+    </fx:define>
+    <children>
+        <DataDetailPane fx:id="status">
+            <contentNode>
+                <GridPane>
+                    <columnConstraints>
+                        <ColumnConstraints hgrow="SOMETIMES" maxWidth="-Infinity" minWidth="10.0"
+                                           prefWidth="$descriptionColumn"/>
+                        <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0"/>
+                    </columnConstraints>
+                    <rowConstraints>
+                        <RowConstraints/>
+                        <RowConstraints/>
+                        <RowConstraints/>
+                        <RowConstraints/>
+                        <RowConstraints/>
+                        <RowConstraints/>
+                    </rowConstraints>
+                    <children>
+                        <Label styleClass="description" text="Name" GridPane.valignment="TOP"/>
+                        <Label fx:id="name" minWidth="0.0" text="Label" wrapText="true" GridPane.columnIndex="1"/>
+                        <Label styleClass="description" text="Type" GridPane.rowIndex="1"/>
+                        <Label fx:id="type" text="Label" GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+                        <Label styleClass="description" text="Link" GridPane.rowIndex="2"/>
+                        <Label fx:id="link" minWidth="0.0" onMouseClicked="#openLink" text="Label"
+                               GridPane.columnIndex="1" GridPane.rowIndex="2">
+                            <styleClass>
+                                <String fx:value="hyperlink-label"/>
+                            </styleClass>
+                        </Label>
+                        <Label styleClass="description" text="Start" GridPane.rowIndex="3"/>
+                        <Label fx:id="start" styleClass="mono" text="Label" GridPane.columnIndex="1"
+                               GridPane.rowIndex="3"/>
+                        <Label styleClass="description" text="End" GridPane.rowIndex="4"/>
+                        <Label fx:id="end" styleClass="mono" text="Label" GridPane.columnIndex="1"
+                               GridPane.rowIndex="4"/>
+                        <Label styleClass="description" text="Duration" GridPane.rowIndex="5"/>
+                        <Label fx:id="duration" styleClass="mono" text="Label" GridPane.columnIndex="1"
+                               GridPane.rowIndex="5"/>
+                    </children>
+                </GridPane>
+            </contentNode>
+        </DataDetailPane>
+        <DataDetailPane headerText="Airports">
+            <contentNode>
+                <FlowPane fx:id="airports" hgap="8.0" vgap="2.0" prefWrapLength="200.0"/>
+            </contentNode>
+        </DataDetailPane>
+        <DataDetailPane headerText="Description">
+            <contentNode>
+                <ScrollPane fx:id="descriptionScroll" fitToWidth="true" hbarPolicy="NEVER" minHeight="0.0"
+                            maxHeight="100.0" prefWidth="0.0" styleClass="event-description">
+                    <content>
+                        <Label fx:id="description" minHeight="-Infinity" text="Label" wrapText="true"/>
+                    </content>
+                </ScrollPane>
+            </contentNode>
+        </DataDetailPane>
+        <HBox alignment="CENTER" spacing="2.0" styleClass="event-actions">
+            <padding>
+                <Insets top="2.0"/>
+            </padding>
+            <children>
+                <Button contentDisplay="RIGHT" graphicTextGap="6.0" maxWidth="1.7976931348623157E308"
+                        mnemonicParsing="false" onAction="#addToCalendar" styleClass="event-action" text="Calendar"
+                        HBox.hgrow="ALWAYS">
+                    <tooltip>
+                        <Tooltip text="Add this event to your calendar"/>
+                    </tooltip>
+                    <graphic>
+                        <FontIcon iconLiteral="oct-calendar-16" iconSize="16"/>
+                    </graphic>
+                </Button>
+                <ToggleButton fx:id="reminder" contentDisplay="RIGHT" graphicTextGap="6.0"
+                              maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#toggleReminder"
+                              styleClass="event-action" text="Reminder" HBox.hgrow="ALWAYS">
+                    <graphic>
+                        <FontIcon iconLiteral="oct-bell-16" iconSize="16"/>
+                    </graphic>
+                </ToggleButton>
+            </children>
+        </HBox>
+    </children>
+</VBox>
